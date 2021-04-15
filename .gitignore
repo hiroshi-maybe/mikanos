@@ -32,7 +32,8 @@
 *.app
 
 # Mac
-.DS_Store
+*.DS_Store
 
 # MikanOS
 mikanos
+*disk.img
