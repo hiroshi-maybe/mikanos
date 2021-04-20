@@ -12,6 +12,6 @@ chmod 755 $OS_DIR
 chmod 666 /dev/null
 
 sudo -u vscode ln -s $WORK_DIR /home/vscode/mikanos
-sudo -u vscode bash $WORK_DIR/scripts/build-loader.sh
+# sudo -u vscode bash $WORK_DIR/scripts/build-loader.sh
 
 su - vscode
