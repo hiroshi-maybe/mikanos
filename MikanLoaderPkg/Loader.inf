@@ -18,9 +18,11 @@
     UefiLib
     UefiApplicationEntryPoint
 
+# https://edk2-docs.gitbook.io/edk-ii-inf-specification/3_edk_ii_inf_file_format/313_-guids-_sections
 [Guids]
+    gEfiFileInfoGuid
 
 [Protocols]
-  gEfiLoadedImageProtocolGuid
-  gEfiLoadFileProtocolGuid
-  gEfiSimpleFileSystemProtocolGuid
+    gEfiLoadedImageProtocolGuid
+    gEfiLoadFileProtocolGuid
+    gEfiSimpleFileSystemProtocolGuid
