@@ -169,11 +169,6 @@ EFI_STATUS EFIAPI UefiMain(
         gop->Mode->FrameBufferBase + gop->Mode->FrameBufferSize,
         gop->Mode->FrameBufferSize);
 
-    UINT8* frame_buffer = (UINT8*)gop->Mode->FrameBufferBase;
-    for(UINTN i = 0; i < gop->Mode->FrameBufferSize; ++i) {
-        frame_buffer[i] = 255;
-    }
-
     // #@@range_end(gop)
 
     // #@@range_begin(read_kernel)
@@ -223,9 +218,9 @@ EFI_STATUS EFIAPI UefiMain(
     const int OFFSET_OF_ENTRYPOINT_ADDRESS = 24;
     UINT64 entry_addr = *(UINT64*)(kernel_base_addr + OFFSET_OF_ENTRYPOINT_ADDRESS);
 
-    typedef void EntryPointType(void);
+    typedef void EntryPointType(UINT64, UINT64);
     EntryPointType* entry_point = (EntryPointType*)entry_addr;
-    entry_point();
+    entry_point(gop->Mode->FrameBufferBase, gop->Mode->FrameBufferSize);
 
     // #@@range_end(call_kernel)
 
