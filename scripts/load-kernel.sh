@@ -5,7 +5,7 @@
 
 export OS_DIR=/workspaces/mikanos
 
-cd /home/vscode/edk2
+cd $HOME/edk2
 
 # https://twitter.com/ww40336161/status/1380312835968835584
 git checkout edk2-stable202102
@@ -26,6 +26,9 @@ build
 
 export DISPLAY=host.docker.internal:0
 
-bash $OS_DIR/workspaces/mikanos/scripts/build_kernel.sh
+source $HOME/osbook/devenv/buildenv.sh
+cd $HOME/mikanos/kernel/
+make all
 
+cd $HOME/edk2
 $HOME/osbook/devenv/run_qemu.sh Build/MikanLoaderX64/DEBUG_CLANG38/X64/Loader.efi $OS_DIR/kernel/kernel.elf
