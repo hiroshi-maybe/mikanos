@@ -30,5 +30,4 @@ source $HOME/osbook/devenv/buildenv.sh
 cd $HOME/mikanos/kernel/
 make all
 
-cd $HOME/edk2
-$HOME/osbook/devenv/run_qemu.sh Build/MikanLoaderX64/DEBUG_CLANG38/X64/Loader.efi $OS_DIR/kernel/kernel.elf
+$HOME/osbook/devenv/run_qemu.sh $HOME/edk2/Build/MikanLoaderX64/DEBUG_CLANG38/X64/Loader.efi $OS_DIR/kernel/kernel.elf
