@@ -1,70 +1,7 @@
 #include <cstdint>
 #include <cstddef>
 #include "frame_buffer_config.hpp"
-
-struct PixelColor {
-    uint8_t r, g, b;
-};
-
-const int BUFFER_SIZE_PER_PIXEL = 4;
-
-class PixelWriter {
-public:
-    PixelWriter(const FrameBufferConfig& config) : config_{config} {}
-    virtual ~PixelWriter() = default;
-    virtual void Write(int x, int y, const PixelColor& c) = 0;
-protected:
-    uint8_t* PixelAt(int x, int y) {
-        return config_.frame_buffer + 4 * (config_.pixels_per_scan_line * y + x);
-    }
-private:
-    const FrameBufferConfig& config_;
-};
-
-class RGBResv8BitPerColorPixelWriter: public PixelWriter {
-public:
-    using PixelWriter::PixelWriter;
-
-    virtual void Write(int x, int y, const PixelColor& c) override {
-        auto p = PixelAt(x, y);
-        p[0] = c.r;
-        p[1] = c.g;
-        p[2] = c.b;
-    }
-};
-
-class BGRResv8BitPerColorPixelWriter: public PixelWriter {
-public:
-    using PixelWriter::PixelWriter;
-
-    virtual void Write(int x, int y, const PixelColor& c) override {
-        auto p = PixelAt(x, y);
-        p[0] = c.b;
-        p[1] = c.g;
-        p[2] = c.r;
-    }
-};
-
-int WritePixel(const FrameBufferConfig& config, int x, int y, const PixelColor& c) {
-    const int pixel_position = config.pixels_per_scan_line * y + x;
-    uint8_t* p = &config.frame_buffer[BUFFER_SIZE_PER_PIXEL * pixel_position];
-    switch (config.pixel_format) {
-        case kPixelRGBResv8BitPerColor:
-            p[0] = c.r;
-            p[1] = c.g;
-            p[2] = c.b;
-            break;
-        case kPixelBGRResv8BitPerColor:
-            p[0] = c.b;
-            p[1] = c.g;
-            p[2] = c.r;
-            break;
-        default:
-            return -1;
-    }
-
-    return 0;
-}
+#include "graphics.hpp"
 
 const uint8_t kFontA[16] = {
   0b00000000, //
