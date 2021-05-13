@@ -36,6 +36,7 @@
 
 # MikanOS
 mikanos
+hankaku.bin
 *disk.img
 *.efi
 *.elf
