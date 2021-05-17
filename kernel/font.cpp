@@ -4,9 +4,6 @@ extern const uint8_t _binary_hankaku_bin_start;
 extern const uint8_t _binary_hankaku_bin_end;
 extern const uint8_t _binary_hankaku_bin_size;
 
-const int PIXEL_HEIGHT_PER_CHAR = 16;
-const int PIXEL_WIDTH_PER_CHAR = 8;
-
 const uint8_t* GetFont(char c) {
     auto index = PIXEL_HEIGHT_PER_CHAR * static_cast<unsigned int>(c);
     if (index >= reinterpret_cast<uintptr_t>(&_binary_hankaku_bin_size)) {
