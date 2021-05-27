@@ -23,6 +23,10 @@ public:
         return this->code_ != kSuccess;
     }
 
+    const char* Name() const {
+        return code_names_[static_cast<int>(this->code_)];
+    }
+
     const char* File() const {
         return this->file_;
     }
