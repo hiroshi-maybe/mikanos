@@ -15,7 +15,7 @@ namespace {
             return x << bits;
         };
 
-        return shl(1, 32)
+        return shl(1, 31)
             | shl(bus, 16)
             | shl(device, 11)
             | shl(func, 8)
@@ -58,7 +58,7 @@ namespace {
             return MAKE_ERROR(Error::kSuccess);
         }
 
-        for (uint8_t func = 0; func < 8; ++func) {
+        for (uint8_t func = 1; func < 8; ++func) {
             if(ReadVendorId(bus, device, func) == INVALID_VENDOR_ID) {
                 continue;
             }
