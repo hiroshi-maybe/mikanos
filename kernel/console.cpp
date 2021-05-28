@@ -14,7 +14,7 @@ void Console::PutString(const char* s) {
             cursor_column_ = 0;
             Newline();
         } else if (cursor_column_ < kColumns - 1) {
-            WriteAscii(writer_, PIXEL_WIDTH_PER_CHAR * cursor_column_, PIXEL_HEIGHT_PER_CHAR, *s, fg_color_);
+            WriteAscii(writer_, PIXEL_WIDTH_PER_CHAR * cursor_column_, PIXEL_HEIGHT_PER_CHAR * cursor_row_, *s, fg_color_);
             buffer_[cursor_row_][cursor_column_] = *s;
             ++cursor_column_;
         }
