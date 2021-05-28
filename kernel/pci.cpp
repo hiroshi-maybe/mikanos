@@ -119,6 +119,10 @@ namespace pci {
         return config & 0xffffu; // last 16 bit
     }
 
+    uint16_t ReadVendorId(Device device) {
+        return ReadVendorId(device.bus, device.device, device.function);
+    }
+
     ClassCode ReadClassCode(uint8_t bus, uint8_t device, uint8_t func) {
         uint32_t config = ReadPCIConfig(bus, device, func, 0x08);
         ClassCode cc;

@@ -103,5 +103,19 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
             dev.bus, dev.device, dev.function, vendor_id, class_code.base, class_code.sub, class_code.interface, dev.header_type);
     }
 
+    pci::Device* xhc_dev = nullptr;
+    for (int i = 0; i < pci::num_device; ++i) {
+        if (pci::devices[i].class_code.Match(pci::CLASSCODE_XHCI)) {
+            xhc_dev = &pci::devices[i];
+
+            if (pci::ReadVendorId(*xhc_dev) == pci::VENDOR_ID_INTEL) break;
+        }
+    }
+
+    if (xhc_dev) {
+        printk("xHC has been found: %d.%d.%d\n",
+            xhc_dev->bus, xhc_dev->device, xhc_dev->function);
+    }
+
     while(1) __asm__("hlt");
 }
