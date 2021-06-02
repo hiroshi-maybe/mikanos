@@ -119,5 +119,11 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
             xhc_dev->bus, xhc_dev->device, xhc_dev->function);
     }
 
+    const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
+    Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
+    // bitwise & with 0xfffffffffffffff0 (64 bit integer)
+    const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
+    Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
+
     while(1) __asm__("hlt");
 }
