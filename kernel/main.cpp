@@ -5,6 +5,7 @@
 #include "frame_buffer_config.hpp"
 #include "font.hpp"
 #include "graphics.hpp"
+#include "logger.hpp"
 #include "pci.hpp"
 
 const PixelColor kDesktopBGColor{45, 118, 237};
@@ -82,6 +83,7 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
     DrawRectangle(*pixel_writer, {10, kFrameHeight - 40}, {30, 30}, {160, 160, 160});
 
     console = new(console_buf) Console{*pixel_writer, kDesktopFGColor, kDesktopBGColor};
+    SetLogLevel(kDebug);
 
     for (int dy = 0; dy < kMouseCursorHeight; ++dy) {
         for (int dx = 0; dx < kMouseCursorWidth; ++dx) {
@@ -94,12 +96,12 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
     }
 
     auto err = pci::ScanAllBus();
-    printk("ScanAllBus: %s (%d devices)\n", err.Name(), pci::num_device);
+    Log(kDebug, "ScanAllBus: %s (%d devices)\n", err.Name(), pci::num_device);
     for (int i = 0; i < pci::num_device; ++i) {
         const auto& dev = pci::devices[i];
         auto vendor_id = pci::ReadVendorId(dev.bus, dev.device, dev.function);
         auto class_code = pci::ReadClassCode(dev.bus, dev.device, dev.function);
-        printk("%d.%d.%d: vend %04x, class (%02x, %02x, %02x), head %02x\n",
+        Log(kDebug, "%d.%d.%d: vend %04x, class (%02x, %02x, %02x), head %02x\n",
             dev.bus, dev.device, dev.function, vendor_id, class_code.base, class_code.sub, class_code.interface, dev.header_type);
     }
 
@@ -113,7 +115,7 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
     }
 
     if (xhc_dev) {
-        printk("xHC has been found: %d.%d.%d\n",
+        Log(kInfo, "xHC has been found: %d.%d.%d\n",
             xhc_dev->bus, xhc_dev->device, xhc_dev->function);
     }
 
