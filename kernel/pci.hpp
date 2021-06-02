@@ -58,6 +58,7 @@ namespace pci {
     uint8_t ReadHeaderType(uint8_t bus, uint8_t device, uint8_t function);
     ClassCode ReadClassCode(uint8_t bus, uint8_t device, uint8_t function);
     uint32_t ReadBusNumbers(uint8_t bus, uint8_t device, uint8_t function);
+    WithError<uint64_t> ReadBar(Device& device, unsigned int bar_index);
 
     bool IsSingleFunctionDevice(uint8_t header_type);
 };

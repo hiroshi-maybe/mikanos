@@ -8,12 +8,14 @@ public:
     enum Code {
         kSuccess,
         kFull,
+        kIndexOutOfRange,
         kLastOfCode,
     };
 private:
     static constexpr std::array code_names_{
         "kSuccess",
         "kFull",
+        "kIndexOutOfRange",
     };
     static_assert(Error::Code::kLastOfCode == code_names_.size());
 public:
@@ -41,3 +43,9 @@ private:
 };
 
 #define MAKE_ERROR(code) Error((code), __FILE__, __LINE__)
+
+template <class T>
+struct WithError {
+  T value;
+  Error error;
+};

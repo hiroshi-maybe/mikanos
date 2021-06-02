@@ -141,6 +141,38 @@ namespace pci {
         return ReadPCIConfig(bus, device, func, 0x18);
     }
 
+    constexpr uint8_t CalcBarAddress(unsigned int bar_index) {
+        return 0x10 + 4 * bar_index;
+    }
+
+    uint32_t ReadConfReg(const Device& dev, uint8_t reg_addr) {
+        return ReadPCIConfig(dev.bus, dev.device, dev.function, reg_addr);
+    }
+
+    WithError<uint64_t> ReadBar(Device& device, unsigned int bar_index) {
+        if (bar_index >= 6) {
+            return {0, MAKE_ERROR(Error::kIndexOutOfRange)};
+        }
+
+        const auto addr = CalcBarAddress(bar_index);
+        const auto bar = ReadConfReg(device, addr);
+
+        // 32 bit address
+        if ((bar & 4u) == 0) {
+            return {bar, MAKE_ERROR(Error::kSuccess)};
+        }
+
+        if (bar_index >= 5) {
+            return {0, MAKE_ERROR(Error::kIndexOutOfRange)};
+        }
+
+        const auto bar_upper = ReadConfReg(device, addr + 4);
+        return {
+            bar | (static_cast<uint64_t>(bar_upper) << 32),
+            MAKE_ERROR(Error::kSuccess)
+        };
+    }
+
     Error ScanAllBus() {
         num_device = 0;
 
