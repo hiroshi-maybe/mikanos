@@ -1,5 +1,5 @@
 TARGET = kernel.elf
-OBJS = main.o graphics.o font.o hankaku.o newlib_support.o console.o pci.o asmfunc.o logger.o usb/xhci/xhci.o usb/xhci/registers.o
+OBJS = main.o graphics.o font.o hankaku.o newlib_support.o console.o pci.o asmfunc.o logger.o usb/memory.o usb/xhci/device.o usb/xhci/devmgr.o usb/xhci/registers.o usb/xhci/ring.o usb/xhci/xhci.o
 DEPENDS = $(join $(dir $(OBJS)),$(addprefix .,$(notdir $(OBJS:.o=.d))))
 
 CPPFLAGS += -I.

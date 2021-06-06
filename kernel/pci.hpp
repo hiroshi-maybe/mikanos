@@ -33,6 +33,11 @@ namespace pci {
         ClassCode::INTERFACE_XHCI};
     const uint16_t VENDOR_ID_INTEL = 0x8086;
 
+    const uint8_t REG_ADDR_USB3PRM = 0xdc;
+    const uint8_t REG_ADDR_USB3_PSSEN = 0xd8;
+    const uint8_t REG_ADDR_XUSB2PRM = 0xd4;
+    const uint8_t REG_ADDR_XUSB2PR = 0xd0;
+
     struct Device {
         uint8_t bus, device, function, header_type;
         ClassCode class_code;
@@ -59,6 +64,9 @@ namespace pci {
     ClassCode ReadClassCode(uint8_t bus, uint8_t device, uint8_t function);
     uint32_t ReadBusNumbers(uint8_t bus, uint8_t device, uint8_t function);
     WithError<uint64_t> ReadBar(Device& device, unsigned int bar_index);
+
+    uint32_t ReadConfReg(const Device& dev, uint8_t reg_addr);
+    void WriteConfReg(const Device& dev, uint8_t reg_addr, uint32_t value);
 
     bool IsSingleFunctionDevice(uint8_t header_type);
 };

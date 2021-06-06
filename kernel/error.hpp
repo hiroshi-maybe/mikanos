@@ -8,6 +8,7 @@ public:
     enum Code {
         kSuccess,
         kFull,
+        kNoEnoughMemory,
         kIndexOutOfRange,
         kLastOfCode,
     };
@@ -15,6 +16,7 @@ private:
     static constexpr std::array code_names_{
         "kSuccess",
         "kFull",
+        "kNoEnoughMemory",
         "kIndexOutOfRange",
     };
     static_assert(Error::Code::kLastOfCode == code_names_.size());

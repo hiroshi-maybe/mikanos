@@ -47,3 +47,29 @@ struct DefaultBitmap {
     }
     operator T() const { return data[0]; }
 };
+
+template <typename T>
+class ArrayWrapper {
+public:
+    using ValueType = T;
+    using Iterator = ValueType*;
+    using ConstIterator = const ValueType*;
+
+    ArrayWrapper(uintptr_t array_base_addr, size_t size) :
+        array_(reinterpret_cast<ValueType*>(array_base_addr)),
+        size_(size)
+    {}
+
+    size_t Size() const { return size_; }
+
+    Iterator begin() { return array_; }
+    Iterator end() { return array_ + size_; }
+    ConstIterator cbegin() const { return array_; }
+    ConstIterator cend() const { return array_ + size_; }
+
+    ValueType& operator [](size_t index) { return array_[index]; }
+
+private:
+    ValueType* const array_;
+    const size_t size_;
+};

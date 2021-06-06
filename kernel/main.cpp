@@ -7,6 +7,7 @@
 #include "graphics.hpp"
 #include "logger.hpp"
 #include "pci.hpp"
+#include "usb/xhci/xhci.hpp"
 
 const PixelColor kDesktopBGColor{45, 118, 237};
 const PixelColor kDesktopFGColor{255, 255, 255};
@@ -55,6 +56,26 @@ int printk(const char* format, ...) {
 
     console->PutString(s);
     return result;
+}
+
+void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
+    bool intel_ehc_exist = false;
+    for (int i=0; i < pci::num_device; ++i) {
+        if (pci::devices[i].class_code.Match(pci::CLASSCODE_XHCI) &&
+            pci::ReadVendorId(pci::devices[i]) == pci::VENDOR_ID_INTEL)
+        {
+            intel_ehc_exist = true;
+            break;
+        }
+    }
+
+    if(!intel_ehc_exist) return;
+
+    uint32_t superspeed_ports = pci::ReadConfReg(xhc_dev, pci::REG_ADDR_USB3PRM);
+    pci::WriteConfReg(xhc_dev, pci::REG_ADDR_USB3_PSSEN, superspeed_ports);
+    uint32_t ehci2xhci_ports = pci::ReadConfReg(xhc_dev, pci::REG_ADDR_XUSB2PRM);
+    pci::WriteConfReg(xhc_dev, pci::REG_ADDR_XUSB2PR, ehci2xhci_ports);
+    Log(kDebug, "SwitchEhci2Xhci: SS = %02, xHCI = %02x\n", superspeed_ports, ehci2xhci_ports);
 }
 
 char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
@@ -124,6 +145,16 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
     // bitwise & with 0xfffffffffffffff0 (64 bit integer)
     const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
     Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
+
+    usb::xhci::Controller xhc{xhc_mmio_base};
+    if (pci::ReadVendorId(*xhc_dev) == pci::VENDOR_ID_INTEL) {
+        SwitchEhci2Xhci(*xhc_dev);
+    }
+
+    {
+        auto err = xhc.Initialize();
+        Log(kDebug, "xhc.Initialize: %s\n", err.Name());
+    }
 
     while(1) __asm__("hlt");
 }
