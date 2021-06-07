@@ -30,4 +30,9 @@ source $HOME/osbook/devenv/buildenv.sh
 cd $HOME/mikanos/kernel/
 make all
 
+if [ $? -ne 0 ]; then
+    echo "Kernel build failed"
+    exit 1
+fi
+
 $HOME/osbook/devenv/run_qemu.sh $HOME/edk2/Build/MikanLoaderX64/DEBUG_CLANG38/X64/Loader.efi $OS_DIR/kernel/kernel.elf
