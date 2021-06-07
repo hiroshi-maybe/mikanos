@@ -61,7 +61,7 @@ int printk(const char* format, ...) {
 void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
     bool intel_ehc_exist = false;
     for (int i=0; i < pci::num_device; ++i) {
-        if (pci::devices[i].class_code.Match(pci::CLASSCODE_XHCI) &&
+        if (pci::devices[i].class_code.Match(pci::CLASSCODE_EHCI) &&
             pci::ReadVendorId(pci::devices[i]) == pci::VENDOR_ID_INTEL)
         {
             intel_ehc_exist = true;
@@ -128,7 +128,7 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
 
     pci::Device* xhc_dev = nullptr;
     for (int i = 0; i < pci::num_device; ++i) {
-        if (pci::devices[i].class_code.Match(pci::CLASSCODE_XHCI)) {
+        if (pci::devices[i].class_code.Match(pci::CLASSCODE_EHCI)) {
             xhc_dev = &pci::devices[i];
 
             if (pci::ReadVendorId(*xhc_dev) == pci::VENDOR_ID_INTEL) break;

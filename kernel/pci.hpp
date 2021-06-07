@@ -27,7 +27,7 @@ namespace pci {
         const static uint8_t INTERFACE_XHCI = 0x30u;
     };
 
-    const ClassCode CLASSCODE_XHCI = ClassCode{
+    const ClassCode CLASSCODE_EHCI = ClassCode{
         ClassCode::BASE_SERIAL_BUS_CONTROLLER,
         ClassCode::SUB_USB_CONTROLLER,
         ClassCode::INTERFACE_XHCI};
