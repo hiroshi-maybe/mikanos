@@ -156,5 +156,8 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
         Log(kDebug, "xhc.Initialize: %s\n", err.Name());
     }
 
+    Log(kInfo, "xHC starting\n");
+    xhc.Run();
+
     while(1) __asm__("hlt");
 }

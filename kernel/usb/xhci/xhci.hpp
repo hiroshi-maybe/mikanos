@@ -10,6 +10,7 @@ class Controller {
 public:
     Controller(uintptr_t mmio_base);
     Error Initialize();
+    Error Run();
 private:
     static const size_t kDeviceSize = 8;
     const uintptr_t mmio_base_;

@@ -121,4 +121,15 @@ Error Controller::Initialize() {
     return MAKE_ERROR(Error::kSuccess);
 }
 
+Error Controller::Run() {
+    auto usbcmd = op_->USBCMD.Read();
+    usbcmd.bits.run_stop = true;
+    op_->USBCMD.Write(usbcmd);
+    op_->USBCMD.Read();
+
+    while (op_->USBSTS.Read().bits.host_controller_halted);
+
+    return MAKE_ERROR(Error::kSuccess);
+}
+
 }
