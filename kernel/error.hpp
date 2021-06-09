@@ -10,6 +10,7 @@ public:
         kFull,
         kNoEnoughMemory,
         kIndexOutOfRange,
+        kInvalidPhase,
         kLastOfCode,
     };
 private:
@@ -17,6 +18,7 @@ private:
         "kSuccess",
         "kFull",
         "kNoEnoughMemory",
+        "kInvalidPhase",
         "kIndexOutOfRange",
     };
     static_assert(Error::Code::kLastOfCode == code_names_.size());

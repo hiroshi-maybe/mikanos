@@ -204,6 +204,75 @@ struct OperationalRegisters {
     MemMapRegister<CONFIG_Bitmap> CONFIG;
 } __attribute__((packed));
 
+union PORTSC_Bitmap {
+    uint32_t data[1];
+    struct {
+        uint32_t current_connect_status : 1;
+        uint32_t port_enabled_disabled : 1;
+        uint32_t : 1;
+        uint32_t over_current_active : 1;
+        uint32_t port_reset : 1;
+        uint32_t port_link_state : 4;
+        uint32_t port_power : 1;
+        uint32_t port_speed : 4;
+        uint32_t port_indicator_control : 2;
+        uint32_t port_link_state_write_strobe : 1;
+        uint32_t connect_status_change : 1;
+        uint32_t port_enabled_disabled_change : 1;
+        uint32_t warm_port_reset_change : 1;
+        uint32_t over_current_change : 1;
+        uint32_t port_reset_change : 1;
+        uint32_t port_link_state_change : 1;
+        uint32_t port_config_error_change : 1;
+        uint32_t cold_attach_status : 1;
+        uint32_t wake_on_connect_enable : 1;
+        uint32_t wake_on_disconnect_enable : 1;
+        uint32_t wake_on_over_current_enable : 1;
+        uint32_t : 2;
+        uint32_t device_removable : 1;
+        uint32_t warm_port_reset : 1;
+    } __attribute__((packed)) bits;
+} __attribute__((packed));
+
+union PORTPMSC_Bitmap {
+    uint32_t data[1];
+    struct {  // definition for USB3 protocol
+        uint32_t u1_timeout : 8;
+        uint32_t u2_timeout : 8;
+        uint32_t force_link_pm_accept : 1;
+        uint32_t : 15;
+    } __attribute__((packed)) bits_usb3;
+} __attribute__((packed));
+
+union PORTLI_Bitmap {
+    uint32_t data[1];
+    struct {  // definition for USB3 protocol
+        uint32_t link_error_count : 16;
+        uint32_t rx_lane_count : 4;
+        uint32_t tx_lane_count : 4;
+        uint32_t : 8;
+    } __attribute__((packed)) bits_usb3;
+} __attribute__((packed));
+
+union PORTHLPMC_Bitmap {
+    uint32_t data[1];
+    struct {  // definition for USB2 protocol
+        uint32_t host_initiated_resume_duration_mode : 2;
+        uint32_t l1_timeout : 8;
+        uint32_t best_effort_service_latency_deep : 4;
+        uint32_t : 18;
+    } __attribute__((packed)) bits_usb2;
+} __attribute__((packed));
+
+struct PortRegisterSet {
+    MemMapRegister<PORTSC_Bitmap> PORTSC;
+    MemMapRegister<PORTPMSC_Bitmap> PORTPMSC;
+    MemMapRegister<PORTLI_Bitmap> PORTLI;
+    MemMapRegister<PORTHLPMC_Bitmap> PORTHLMPC;
+} __attribute__((packed));
+
+using PortRegisterSetArray = ArrayWrapper<PortRegisterSet>;
+
 union IMAN_Bitmap {
     uint32_t data[1];
     struct {

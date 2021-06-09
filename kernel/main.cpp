@@ -134,5 +134,17 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
 
     usb::HIDMouseDriver::default_observer = MouseObserver;
 
+    for (int i = 0; i <= xhc.MaxPorts(); ++i) {
+        auto port = xhc.PortAt(i);
+        Log(kDebug, "Port %d: IsConnected=%d\n", i, port.IsConnected());
+
+        if (port.IsConnected()) {
+            if (auto err = ConfigurePort(xhc, port)) {
+                Log(kError, "failed to configure port; %s at %s:%d\n", err.Name(), err.File(), err.Line());
+                continue;
+            }
+        }
+    }
+
     while(1) __asm__("hlt");
 }

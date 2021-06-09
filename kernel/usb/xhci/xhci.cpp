@@ -6,6 +6,45 @@
 namespace {
 using namespace usb::xhci;
 
+enum class ConfigPhase {
+    kNotConnected,
+    kWaitingAddressed,
+    kResettingPort,
+    kEnablingSlot,
+    kAddressingDevice,
+    kInitializingDevice,
+    kConfiguringEndpoints,
+    kCOnfigured,
+};
+
+// index: Port number
+std::array<volatile ConfigPhase, 256> port_config_phase{};
+
+/**
+ * The number of processing port transitiong from kResettingPort to kAddressingDevice.
+ * `0` represents that there is no such a port.
+ */
+uint8_t addressing_port{0};
+
+Error ResetPort(Controller& xhc, Port& port) {
+    const bool is_connected = port.IsConnected();
+    Log(kDebug, "ResetPort: port.IsConnected() = %s\n", is_connected ? "true" : "false");
+    if (!is_connected) return MAKE_ERROR(Error::kSuccess);
+
+    if (addressing_port != 0) {
+        port_config_phase[port.Number()] = ConfigPhase::kWaitingAddressed;
+    } else {
+        const auto port_phase = port_config_phase[port.Number()];
+        if (port_phase != ConfigPhase::kNotConnected && port_phase != ConfigPhase::kWaitingAddressed) {
+            return MAKE_ERROR(Error::kInvalidPhase);
+        }
+        addressing_port = port.Number();
+        port_config_phase[port.Number()] = ConfigPhase::kResettingPort;
+        port.Reset();
+    }
+    return MAKE_ERROR(Error::kSuccess);
+}
+
 Error RegisterCommandRing(Ring* ring, MemMapRegister<CRCR_Bitmap>* crcr) {
     CRCR_Bitmap value = crcr->Read();
     value.bits.ring_cycle_state = true;
@@ -128,6 +167,14 @@ Error Controller::Run() {
     op_->USBCMD.Read();
 
     while (op_->USBSTS.Read().bits.host_controller_halted);
+
+    return MAKE_ERROR(Error::kSuccess);
+}
+
+Error ConfigurePort(Controller& xhc, Port& port) {
+    if (port_config_phase[port.Number()] == ConfigPhase::kNotConnected) {
+        return ResetPort(xhc, port);
+    }
 
     return MAKE_ERROR(Error::kSuccess);
 }
