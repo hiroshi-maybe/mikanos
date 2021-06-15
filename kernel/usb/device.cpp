@@ -105,6 +105,15 @@ Error Device::StartInitialize() {
                          buf_.data(), buf_.size(), true);
 }
 
+Error Device::OnEndpointsConfigured() {
+    for (auto class_driver : class_drivers_) {
+        if (auto err = class_driver->OnEndpointsConfigured()) {
+            return err;
+        }
+    }
+    return MAKE_ERROR(Error::kSuccess);
+}
+
 Error Device::OnControlCompleted(EndpointID ep_id, SetupData setup_data,
                          const void* buf, int len)
 {

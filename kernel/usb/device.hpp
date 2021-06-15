@@ -24,6 +24,7 @@ public:
     Error StartInitialize();
     bool IsInitialized() { return is_initialized_; }
     EndpointConfig* EndpointConfigs() { return ep_configs_.data(); }
+    Error OnEndpointsConfigured();
     int NumEndpointConfigs() { return num_ep_configs_; }
 
     uint8_t* Buffer() { return buf_.data(); }

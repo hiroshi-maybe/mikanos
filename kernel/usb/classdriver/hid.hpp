@@ -9,6 +9,7 @@ public:
     HIDBaseDriver(Device* dev, int interface_index, int in_packet_size);
 
     Error SetEndpoint(const EndpointConfig& config) override;
+    Error OnEndpointsConfigured() override;
     Error OnControlCompleted(EndpointID ep_id, SetupData setup_data,
                              const void* buf, int len) override;
     Error OnInterruptCompleted(EndpointID ep_id, const void* buf, int len) override;

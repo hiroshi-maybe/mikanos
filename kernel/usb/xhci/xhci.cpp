@@ -15,7 +15,7 @@ enum class ConfigPhase {
     kAddressingDevice,
     kInitializingDevice,
     kConfiguringEndpoints,
-    kCOnfigured,
+    kConfigured,
 };
 
 // index: Port number
@@ -152,6 +152,17 @@ Error InitializeDevice(Controller& xhc, uint8_t port_id, uint8_t slot_id) {
     return MAKE_ERROR(Error::kSuccess);
 }
 
+Error CompleteConfiguration(Controller& xhc, uint8_t port_id, uint8_t slot_id) {
+    Log(kDebug, "CompleteConfiguration: port_id = %d, slot_id = %d\n", port_id, slot_id);
+
+    auto dev = xhc.DeviceManager()->FindBySlot(slot_id);
+    if (dev == nullptr) return MAKE_ERROR(Error::kInvalidSlotID);
+
+    dev->OnEndpointsConfigured();
+    port_config_phase[port_id] = ConfigPhase::kConfigured;
+    return MAKE_ERROR(Error::kSuccess);
+}
+
 Error RegisterCommandRing(Ring* ring, MemMapRegister<CRCR_Bitmap>* crcr) {
     CRCR_Bitmap value = crcr->Read();
     value.bits.ring_cycle_state = true;
@@ -253,8 +264,18 @@ Error OnEvent(Controller& xhc, CommandCompletionEventTRB& trb) {
     }
 
     if (issuer_type == ConfigureEndpointCommandTRB::Type) {
-        // @TODO: add missing code
+        auto dev = xhc.DeviceManager()->FindBySlot(slot_id);
+        if (dev == nullptr) return MAKE_ERROR(Error::kInvalidSlotID);
+
+        auto port_id = dev->DeviceContext()->slot_context.bits.root_hub_port_num;
+        if (port_config_phase[port_id] != ConfigPhase::kConfiguringEndpoints) {
+            return MAKE_ERROR(Error::kInvalidPhase);
+        }
+
+        return CompleteConfiguration(xhc, port_id, slot_id);
     }
+
+    return MAKE_ERROR(Error::kInvalidPhase);
 }
 
 }

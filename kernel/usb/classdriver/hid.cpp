@@ -21,6 +21,20 @@ Error HIDBaseDriver::SetEndpoint(const EndpointConfig& config) {
     return MAKE_ERROR(Error::kSuccess);
 }
 
+Error HIDBaseDriver::OnEndpointsConfigured() {
+    SetupData setup_data{};
+    setup_data.request_type.bits.direction = request_type::kOut;
+    setup_data.request_type.bits.type = request_type::kClass;
+    setup_data.request_type.bits.recipient = request_type::kInterface;
+    setup_data.request = request::kSetProtocol;
+    setup_data.value = 0; // boot protocol
+    setup_data.index = interface_index_;
+    setup_data.length = 0;
+
+    initialize_phase_ = 1;
+    return ParentDevice()->ControlOut(kDefaultControlPipeID, setup_data, nullptr, 0, this);
+}
+
 Error HIDBaseDriver::OnControlCompleted(EndpointID ep_id, SetupData setup_data,
                                         const void* buf, int len)
 {
