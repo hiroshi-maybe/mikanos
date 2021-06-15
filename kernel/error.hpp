@@ -10,7 +10,17 @@ public:
         kFull,
         kNoEnoughMemory,
         kIndexOutOfRange,
+        kInvalidSlotID,
+        kInvalidEndpointNumber,
+        kTransferRingNotSet,
+        kAlreadyAllocated,
+        kNotImplemented,
+        kInvalidDescriptor,
+        kNoCorrespondingSetupStage,
+        kTransferFailed,
         kInvalidPhase,
+        kUnknownXHCISpeedID,
+        kNoWaiter,
         kLastOfCode,
     };
 private:
@@ -18,8 +28,18 @@ private:
         "kSuccess",
         "kFull",
         "kNoEnoughMemory",
+        "kInvalidSlotID",
+        "kInvalidEndpointNumber",
+        "kTransferRingNotSet",
+        "kAlreadyAllocated",
+        "kNotImplemented",
+        "kInvalidDescriptor",
+        "kNoCorrespondingSetupStage",
+        "kTransferFailed",
         "kInvalidPhase",
         "kIndexOutOfRange",
+        "kUnknownXHCISpeedID",
+        "kNoWaiter",
     };
     static_assert(Error::Code::kLastOfCode == code_names_.size());
 public:

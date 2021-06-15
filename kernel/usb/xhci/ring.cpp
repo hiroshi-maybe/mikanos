@@ -58,10 +58,49 @@ Error EventRing::Initialize(
     return MAKE_ERROR(Error::kSuccess);
 }
 
+ void Ring::CopyToLast(const std::array<uint32_t, 4>& data) {
+     for (int i = 0; i < 3; ++i) {
+         buf_[write_index_].data[i] = data[i];
+     }
+     buf_[write_index_].data[3] = (data[3] & 0xfffffffeu) | static_cast<uint32_t>(cycle_bit_);
+ }
+
+TRB* Ring::Push(const std::array<uint32_t, 4>& data) {
+    auto trb_ptr = &buf_[write_index_];
+    CopyToLast(data);
+
+    ++write_index_;
+    if (write_index_ == buf_size_ - 1) {
+        LinkTRB link{buf_};
+        link.bits.toggle_cycle = true;
+        CopyToLast(link.data);
+
+        write_index_ = 0;
+        cycle_bit_ = !cycle_bit_;
+    }
+
+    return trb_ptr;
+}
+
 void EventRing::WriteDequeuePointer(TRB* p) {
     auto erdp = interrupter_->ERDP.Read();
     erdp.SetPointer(reinterpret_cast<uint64_t>(p));
     interrupter_->ERDP.Write(erdp);
+}
+
+void EventRing::Pop() {
+    auto p = ReadDequeuePointer() + 1;
+
+    TRB* segment_begin
+        = reinterpret_cast<TRB*>(erst_[0].bits.ring_segment_base_address);
+    TRB* segment_end = segment_begin + erst_[0].bits.ring_segment_size;
+
+    if (p == segment_end) {
+        p = segment_begin;
+        cycle_bit_ = !cycle_bit_;
+    }
+
+    WriteDequeuePointer(p);
 }
 
 }

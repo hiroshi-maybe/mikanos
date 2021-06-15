@@ -18,6 +18,9 @@ public:
     Ring& operator=(const Ring&) = delete;
 
     Error Initialize(size_t buf_size);
+    void CopyToLast(const std::array<uint32_t, 4>& data);
+    template <typename TRBType>
+    TRB* Push(const TRBType& trb) { return Push(trb.data); }
 
     TRB* Buffer() const { return buf_; }
 
@@ -26,6 +29,7 @@ private:
     size_t buf_size_ = 0;
     bool cycle_bit_;
     size_t write_index_;
+    TRB* Push(const std::array<uint32_t, 4>& data);
 };
 
 union EventRingSegmentTableEntry {
@@ -47,6 +51,15 @@ public:
     }
     void WriteDequeuePointer(TRB* p);
 
+    bool HasFront() const {
+        return Front()->bits.cycle_bit == cycle_bit_;
+    }
+
+    TRB* Front() const {
+        return ReadDequeuePointer();
+    }
+
+    void Pop();
 private:
     TRB* buf_;
     size_t buf_size_;

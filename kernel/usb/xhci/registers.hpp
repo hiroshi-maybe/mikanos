@@ -371,6 +371,8 @@ public:
     }
 };
 
+using DoorbellRegisterArray = ArrayWrapper<DoorbellRegister>;
+
 union ExtendedRegister_Bitmap {
     uint32_t data[1];
     struct {

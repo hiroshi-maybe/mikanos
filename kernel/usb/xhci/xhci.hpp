@@ -12,10 +12,14 @@ public:
     Controller(uintptr_t mmio_base);
     Error Initialize();
     Error Run();
+    Ring* CommandRing() { return &cr_; }
+    EventRing* PrimaryEventRing() { return &er_; }
+    DoorbellRegister* DoorbellRegisterAt(uint8_t index);
     Port PortAt(uint8_t port_num) {
         return Port{port_num, PortRegisterSets()[port_num - 1]};
     }
     uint8_t MaxPorts() const { return max_ports_; }
+    DeviceManager* DeviceManager() { return &devmgr_; }
 private:
     static const size_t kDeviceSize = 8;
     const uintptr_t mmio_base_;
@@ -34,8 +38,18 @@ private:
     PortRegisterSetArray PortRegisterSets() const {
         return {reinterpret_cast<uintptr_t>(op_) + 0x400u, max_ports_};
     }
+
+    DoorbellRegisterArray DoorbellRegisters() const {
+        return {mmio_base_ + cap_->DBOFF.Read().Offset(), 256};
+    }
 };
 
 Error ConfigurePort(Controller& xhc, Port& port);
+Error ConfigureEndpoints(Controller& xhc, Device& dev);
+
+/**
+ * Processes an event at the head of XHC's primary event ring.
+ */
+Error ProcessEvent(Controller& xhc);
 
 }

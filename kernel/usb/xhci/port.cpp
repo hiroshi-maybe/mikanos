@@ -9,6 +9,18 @@ bool Port::IsConnected() const {
     return port_reg_set_.PORTSC.Read().bits.current_connect_status;
 }
 
+bool Port::IsEnabled() const {
+    return port_reg_set_.PORTSC.Read().bits.port_enabled_disabled;
+}
+
+bool Port::IsPortResetChanged() const {
+    return port_reg_set_.PORTSC.Read().bits.port_reset_change;
+}
+
+int Port::Speed() const {
+    return port_reg_set_.PORTSC.Read().bits.port_speed;
+}
+
 Error Port::Reset() {
     auto portsc = port_reg_set_.PORTSC.Read();
     portsc.data[0] &= 0x0e00c3e0u;

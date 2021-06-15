@@ -146,5 +146,11 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
         }
     }
 
+    while (1) {
+        if (auto err = ProcessEvent(xhc)) {
+            Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
+        }
+    }
+
     while(1) __asm__("hlt");
 }

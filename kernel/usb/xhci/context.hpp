@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "usb/endpoint.hpp"
+
 namespace usb::xhci {
 
 union TRB;
@@ -69,9 +71,57 @@ union EndpointContext {
     }
 } __attribute__((packed));
 
+struct DeviceContextIndex {
+    int value;
+
+    explicit DeviceContextIndex(int dci) : value{dci} {}
+    DeviceContextIndex(EndpointID ep_id) : value{ep_id.Address()} {}
+    DeviceContextIndex(int ep_num, bool dir_in) :
+        value{2 * ep_num + (ep_num == 0 ? 1 : dir_in)}
+    {}
+
+    DeviceContextIndex(const DeviceContextIndex& rhs) = default;
+    DeviceContextIndex& operator =(const DeviceContextIndex& rhs) = default;
+};
+
 struct DeviceContext {
     SlotContext slot_context;
     EndpointContext ep_contexts[31];
+} __attribute__((packed));
+
+struct InputControlContext {
+    uint32_t drop_context_flags;
+    uint32_t add_context_flags;
+    uint32_t reserved1[5];
+    uint8_t configuration_value;
+    uint8_t interface_number;
+    uint8_t alternate_setting;
+    uint8_t reserved2;
+} __attribute__((packed));
+
+struct InputContext {
+    InputControlContext input_control_context;
+    SlotContext slot_context;
+    EndpointContext ep_contexts[31];
+
+    /** @brief Enable the slot context.
+     *
+     * @return Pointer to the slot context enabled.
+     */
+    SlotContext* EnableSlotContext() {
+        input_control_context.add_context_flags |= 1;
+        return &slot_context;
+    }
+
+    /** @brief Enable an endpoint.
+     *
+     * @param dci Device Context Index (1 .. 31)
+     * @return Pointer to the endpoint context enabled.
+     */
+    EndpointContext* EnableEndpoint(DeviceContextIndex dci) {
+        input_control_context.add_context_flags |= 1u << dci.value;
+        return &ep_contexts[dci.value - 1];
+    }
 } __attribute__((packed));
 
 }

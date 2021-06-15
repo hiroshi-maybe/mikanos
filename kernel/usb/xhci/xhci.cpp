@@ -2,6 +2,7 @@
 
 #include "logger.hpp"
 #include "usb/memory.hpp"
+#include "usb/xhci/speed.hpp"
 
 namespace {
 using namespace usb::xhci;
@@ -26,6 +27,48 @@ std::array<volatile ConfigPhase, 256> port_config_phase{};
  */
 uint8_t addressing_port{0};
 
+void InitializeSlotContext(SlotContext& ctx, Port& port) {
+    ctx.bits.route_string = 0;
+    ctx.bits.root_hub_port_num = port.Number();
+    ctx.bits.context_entries = 1;
+    ctx.bits.speed = port.Speed();
+}
+
+unsigned int DetermineMaxPacketSizeForControlPipe(unsigned int slot_speed) {
+    switch (slot_speed) {
+    case 4: // Super Speed
+        return 512;
+    case 3: // High Speed
+        return 64;
+    default:
+        return 8;
+    }
+}
+
+int MostSignificantBit(uint32_t value) {
+    if (value == 0) return -1;
+
+    int msb_index;
+    asm("bsr %1, %0"
+        : "=r"(msb_index) : "m"(value));
+    return msb_index;
+}
+
+void InitializeEP0Context(EndpointContext& ctx,
+                          Ring* transfer_ring,
+                          unsigned int max_packet_size)
+{
+    ctx.bits.ep_type = 4; // Control Endpoint. Bidirectional.
+    ctx.bits.max_packet_size = max_packet_size;
+    ctx.bits.max_burst_size = 0;
+    ctx.SetTransferRingBuffer(transfer_ring->Buffer());
+    ctx.bits.dequeue_cycle_state = 1;
+    ctx.bits.interval = 0;
+    ctx.bits.max_primary_streams = 0;
+    ctx.bits.mult = 0;
+    ctx.bits.error_count = 3;
+}
+
 Error ResetPort(Controller& xhc, Port& port) {
     const bool is_connected = port.IsConnected();
     Log(kDebug, "ResetPort: port.IsConnected() = %s\n", is_connected ? "true" : "false");
@@ -42,6 +85,70 @@ Error ResetPort(Controller& xhc, Port& port) {
         port_config_phase[port.Number()] = ConfigPhase::kResettingPort;
         port.Reset();
     }
+    return MAKE_ERROR(Error::kSuccess);
+}
+
+Error EnableSlot(Controller& xhc, Port& port) {
+    const bool is_enabled = port.IsEnabled();
+    const bool reset_completed = port.IsPortResetChanged();
+    Log(kDebug, "EnableSlot: port.IsEnabled() = %s, port.IsPortResetChanged() = %s\n",
+        is_enabled ? "true" : "false",
+        reset_completed ? "true" : "false");
+
+    if (is_enabled && reset_completed) {
+        port.ClearPortResetChange();
+
+        port_config_phase[port.Number()] = ConfigPhase::kEnablingSlot;
+
+        EnableSlotCommandTRB cmd{};
+        xhc.CommandRing()->Push(cmd);
+        xhc.DoorbellRegisterAt(0)->Ring(0);
+    }
+    return MAKE_ERROR(Error::kSuccess);
+}
+
+Error AddressDevice(Controller& xhc, uint8_t port_id, uint8_t slot_id) {
+    Log(kDebug, "AddressDevice: port_id = %d, slot_id = %d\n", port_id, slot_id);
+
+    xhc.DeviceManager()->AllocDevice(slot_id, xhc.DoorbellRegisterAt(slot_id));
+
+    Device* dev = xhc.DeviceManager()->FindBySlot(slot_id);
+    if (dev == nullptr) return MAKE_ERROR(Error::kInvalidSlotID);
+
+    memset(&dev->InputContext()->input_control_context, 0,
+           sizeof(InputControlContext));
+
+    const auto ep0_dci = DeviceContextIndex(0, false);
+    auto slot_ctx = dev->InputContext()->EnableSlotContext();
+    auto ep0_ctx = dev->InputContext()->EnableEndpoint(ep0_dci);
+
+    auto port = xhc.PortAt(port_id);
+    InitializeSlotContext(*slot_ctx, port);
+
+    InitializeEP0Context(
+        *ep0_ctx, dev->AllocTransferRing(ep0_dci, 32),
+        DetermineMaxPacketSizeForControlPipe(slot_ctx->bits.speed));
+
+    xhc.DeviceManager()->LoadDCBAA(slot_id);
+
+    port_config_phase[port_id] = ConfigPhase::kAddressingDevice;
+
+    AddressDeviceCommandTRB addr_dev_cmd{dev->InputContext(), slot_id};
+    xhc.CommandRing()->Push(addr_dev_cmd);
+    xhc.DoorbellRegisterAt(0)->Ring(0);
+
+    return MAKE_ERROR(Error::kSuccess);
+}
+
+Error InitializeDevice(Controller& xhc, uint8_t port_id, uint8_t slot_id) {
+    Log(kDebug, "InitializeDevice: port_id = %d, slot_id = %d\n", port_id, slot_id);
+
+    auto dev = xhc.DeviceManager()->FindBySlot(slot_id);
+    if (dev == nullptr) return MAKE_ERROR(Error::kInvalidSlotID);
+
+    port_config_phase[port_id] = ConfigPhase::kInitializingDevice;
+    dev->StartInitialize();
+
     return MAKE_ERROR(Error::kSuccess);
 }
 
@@ -78,6 +185,76 @@ void RequestHCOwnership(uintptr_t mmio_base, HCCPARAMS1_Bitmap hccp) {
         || !r.bits.hc_os_owned_semaphore);
 
     Log(kDebug, "OS has owned xHC\n");
+}
+
+Error OnEvent(Controller& xhc, TransferEventTRB& trb) {
+    const uint8_t slot_id = trb.bits.slot_id;
+    auto dev = xhc.DeviceManager()->FindBySlot(slot_id);
+    if (dev == nullptr) return MAKE_ERROR(Error::kInvalidSlotID);
+    if (auto err = dev->OnTransferEventReceived(trb)) return err;
+
+    const auto port_id = dev->DeviceContext()->slot_context.bits.root_hub_port_num;
+    if (dev->IsInitialized() &&
+        port_config_phase[port_id] == ConfigPhase::kInitializingDevice)
+    {
+        return ConfigureEndpoints(xhc, *dev);
+    }
+
+    return MAKE_ERROR(Error::kSuccess);
+}
+
+Error OnEvent(Controller& xhc, PortStatusChangeEventTRB& trb) {
+    Log(kDebug, "PortStatusChangeEvent: port_id = %d\n", trb.bits.port_id);
+    auto port_id = trb.bits.port_id;
+    auto port = xhc.PortAt(port_id);
+
+    switch (port_config_phase[port_id]) {
+        case ConfigPhase::kNotConnected:
+            return ResetPort(xhc, port);
+        case ConfigPhase::kResettingPort:
+            return EnableSlot(xhc, port);
+        default:
+            return MAKE_ERROR(Error::kInvalidPhase);
+    }
+}
+
+Error OnEvent(Controller& xhc, CommandCompletionEventTRB& trb) {
+    const auto issuer_type = trb.Pointer()->bits.trb_type;
+    const auto slot_id = trb.bits.slot_id;
+    Log(kDebug, "CommandCompletionEvent: slot_id = %d, issuer = %s\n",
+        trb.bits.slot_id, kTRBTypeToName[issuer_type]);
+
+    if (issuer_type == EnableSlotCommandTRB::Type) {
+        if (port_config_phase[addressing_port] != ConfigPhase::kEnablingSlot) {
+            return MAKE_ERROR(Error::kInvalidPhase);
+        }
+
+        return AddressDevice(xhc, addressing_port, slot_id);
+    }
+
+    if (issuer_type == AddressDeviceCommandTRB::Type) {
+        auto dev = xhc.DeviceManager()->FindBySlot(slot_id);
+        if (dev == nullptr) return MAKE_ERROR(Error::kInvalidSlotID);
+
+        auto port_id = dev->DeviceContext()->slot_context.bits.root_hub_port_num;
+        if (port_id != addressing_port) return MAKE_ERROR(Error::kInvalidPhase);
+        if (port_config_phase[port_id] != ConfigPhase::kAddressingDevice) return MAKE_ERROR(Error::kInvalidPhase);
+
+        addressing_port = 0;
+        for (int i = 0; i < port_config_phase.size(); ++i) {
+            if (port_config_phase[i] == ConfigPhase::kWaitingAddressed) {
+                auto port = xhc.PortAt(i);
+                if (auto err = ResetPort(xhc, port)) return err;
+                break;
+            }
+        }
+
+        return InitializeDevice(xhc, port_id, slot_id);
+    }
+
+    if (issuer_type == ConfigureEndpointCommandTRB::Type) {
+        // @TODO: add missing code
+    }
 }
 
 }
@@ -171,12 +348,100 @@ Error Controller::Run() {
     return MAKE_ERROR(Error::kSuccess);
 }
 
+DoorbellRegister* Controller::DoorbellRegisterAt(uint8_t index) {
+    return &DoorbellRegisters()[index];
+}
+
 Error ConfigurePort(Controller& xhc, Port& port) {
     if (port_config_phase[port.Number()] == ConfigPhase::kNotConnected) {
         return ResetPort(xhc, port);
     }
 
     return MAKE_ERROR(Error::kSuccess);
+}
+
+Error ConfigureEndpoints(Controller& xhc, Device& dev) {
+    const auto configs = dev.EndpointConfigs();
+    const auto len = dev.NumEndpointConfigs();
+
+    memset(&dev.InputContext()->input_control_context, 0, sizeof(InputControlContext));
+    memcpy(&dev.InputContext()->slot_context,
+           &dev.DeviceContext()->slot_context, sizeof(SlotContext));
+
+    auto slot_ctx = dev.InputContext()->EnableSlotContext();
+    slot_ctx->bits.context_entries = 31;
+    const auto port_id{dev.DeviceContext()->slot_context.bits.root_hub_port_num};
+    const int port_speed{xhc.PortAt(port_id).Speed()};
+    if (port_speed == 0 || port_speed > kSuperSpeedPlus) {
+        return MAKE_ERROR(Error::kUnknownXHCISpeedID);
+    }
+
+    auto convert_interval{
+        (port_speed == kFullSpeed || port_speed == kLowSpeed)
+        ? [](EndpointType type, int interval) { // for FS, LS
+            if (type == EndpointType::kIsochronous) return interval + 2;
+            else return MostSignificantBit(interval) + 3;
+        }
+        : [](EndpointType type, int interval) { // for HS, SS, SSP
+            return interval - 1;
+        }};
+
+    for (int i = 0; i < len; ++i) {
+        const DeviceContextIndex ep_dci{configs[i].ep_id};
+        auto ep_ctx = dev.InputContext()->EnableEndpoint(ep_dci);
+        switch (configs[i].ep_type) {
+        case EndpointType::kControl:
+            ep_ctx->bits.ep_type = 4;
+            break;
+        case EndpointType::kIsochronous:
+            ep_ctx->bits.ep_type = configs[i].ep_id.IsIn() ? 5 : 1;
+            break;
+        case EndpointType::kBulk:
+            ep_ctx->bits.ep_type = configs[i].ep_id.IsIn() ? 6 : 2;
+            break;
+        case EndpointType::kInterrupt:
+            ep_ctx->bits.ep_type = configs[i].ep_id.IsIn() ? 7 : 3;
+            break;
+        }
+        ep_ctx->bits.max_packet_size = configs[i].max_packet_size;
+        ep_ctx->bits.interval = convert_interval(configs[i].ep_type, configs[i].interval);
+        ep_ctx->bits.average_trb_length = 1;
+
+        auto tr = dev.AllocTransferRing(ep_dci, 32);
+        ep_ctx->SetTransferRingBuffer(tr->Buffer());
+
+        ep_ctx->bits.dequeue_cycle_state = 1;
+        ep_ctx->bits.max_primary_streams = 0;
+        ep_ctx->bits.mult = 0;
+        ep_ctx->bits.error_count = 3;
+    }
+
+    port_config_phase[port_id] = ConfigPhase::kConfiguringEndpoints;
+
+    ConfigureEndpointCommandTRB cmd{dev.InputContext(), dev.SlotID()};
+    xhc.CommandRing()->Push(cmd);
+    xhc.DoorbellRegisterAt(0)->Ring(0);
+
+    return MAKE_ERROR(Error::kSuccess);
+}
+
+Error ProcessEvent(Controller& xhc) {
+    if (!xhc.PrimaryEventRing()->HasFront()) {
+        return MAKE_ERROR(Error::kSuccess);
+    }
+
+    Error err = MAKE_ERROR(Error::kNotImplemented);
+    auto event_trb = xhc.PrimaryEventRing()->Front();
+    if (auto trb = TRBDynamicCast<TransferEventTRB>(event_trb)) {
+        err = OnEvent(xhc, *trb);
+    } else if (auto trb = TRBDynamicCast<PortStatusChangeEventTRB>(event_trb)) {
+        err = OnEvent(xhc, *trb);
+    } else if (auto trb = TRBDynamicCast<CommandCompletionEventTRB>(event_trb)) {
+        err = OnEvent(xhc, *trb);
+    }
+    xhc.PrimaryEventRing()->Pop();
+
+    return err;
 }
 
 }
