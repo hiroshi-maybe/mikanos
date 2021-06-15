@@ -28,6 +28,7 @@ private:
         "kSuccess",
         "kFull",
         "kNoEnoughMemory",
+        "kIndexOutOfRange",
         "kInvalidSlotID",
         "kInvalidEndpointNumber",
         "kTransferRingNotSet",
@@ -37,7 +38,6 @@ private:
         "kNoCorrespondingSetupStage",
         "kTransferFailed",
         "kInvalidPhase",
-        "kIndexOutOfRange",
         "kUnknownXHCISpeedID",
         "kNoWaiter",
     };

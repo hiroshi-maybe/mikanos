@@ -128,6 +128,7 @@ Error Device::OnControlCompleted(EndpointID ep_id, SetupData setup_data,
 
     const uint8_t* buf8 = reinterpret_cast<const uint8_t*>(buf);
     if (initialize_phase_ == 1) {
+        Log(kDebug, "***initialize phase 1: %d\n", setup_data.request);
         if (setup_data.request == request::kGetDescriptor && DescriptorDynamicCast<DeviceDescriptor>(buf8)) {
             return InitializePhase1(buf8, len);
         }
@@ -135,7 +136,8 @@ Error Device::OnControlCompleted(EndpointID ep_id, SetupData setup_data,
     }
 
     if (initialize_phase_ == 2) {
-        if (setup_data.request == request::kGetDescriptor && DescriptorDynamicCast<DeviceDescriptor>(buf8)) {
+        Log(kDebug, "***initialize phase 2: %d\n", setup_data.request);
+        if (setup_data.request == request::kGetDescriptor && DescriptorDynamicCast<ConfigurationDescriptor>(buf8)) {
             return InitializePhase2(buf8, len);
         }
         return MAKE_ERROR(Error::kInvalidPhase);

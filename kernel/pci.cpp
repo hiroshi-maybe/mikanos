@@ -1,3 +1,4 @@
+#include "logger.hpp"
 #include "pci.hpp"
 #include "asmfunc.h"
 
@@ -155,6 +156,8 @@ namespace pci {
     }
 
     WithError<uint64_t> ReadBar(Device& device, unsigned int bar_index) {
+        Log(kDebug, "[ReadBar] bar_index = %d", bar_index);
+
         if (bar_index >= 6) {
             return {0, MAKE_ERROR(Error::kIndexOutOfRange)};
         }
