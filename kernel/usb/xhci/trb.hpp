@@ -13,7 +13,7 @@
 #include "usb/xhci/context.hpp"
 
 namespace usb::xhci {
-
+extern const std::array<const char*, 37> kTRBCompletionCodeToName;
 extern const std::array<const char*, 64> kTRBTypeToName;
 
 union TRB {

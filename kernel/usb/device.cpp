@@ -68,6 +68,32 @@ usb::ClassDriver* NewClassDriver(usb::Device* dev, const usb::InterfaceDescripto
     return nullptr;
 }
 
+void Log(LogLevel level, const usb::InterfaceDescriptor& if_desc) {
+    Log(level, "Interface Descriptor: class=%d, sub=%d, protocol=%d\n",
+        if_desc.interface_class,
+        if_desc.interface_sub_class,
+        if_desc.interface_protocol);
+}
+
+void Log(LogLevel level, const usb::EndpointConfig& conf) {
+    Log(level, "EndpointConf: ep_id=%d, ep_type=%d"
+        ", max_packet_size=%d, interval=%d\n",
+        conf.ep_id.Address(), conf.ep_type,
+        conf.max_packet_size, conf.interval);
+}
+
+void Log(LogLevel level, const usb::HIDDescriptor& hid_desc) {
+    Log(level, "HID Descriptor: release=0x%02x, num_desc=%d",
+        hid_desc.hid_release,
+        hid_desc.num_descriptors);
+    for (int i = 0; i < hid_desc.num_descriptors; ++i) {
+        Log(level, ", desc_type=%d, len=%d",
+            hid_desc.GetClassDescriptor(i)->descriptor_type,
+            hid_desc.GetClassDescriptor(i)->descriptor_length);
+    }
+    Log(level, "\n");
+}
+
 }
 
 namespace usb {
@@ -180,7 +206,7 @@ Error Device::InitializePhase2(const uint8_t* buf, int len) {
 
     ClassDriver* class_driver = nullptr;
     while (auto if_desc = config_reader.Next<InterfaceDescriptor>()) {
-        //Log(kDebug, *if_desc);
+        Log(kDebug, *if_desc);
 
         class_driver = NewClassDriver(this, *if_desc);
         if (class_driver == nullptr) continue;
@@ -191,13 +217,13 @@ Error Device::InitializePhase2(const uint8_t* buf, int len) {
             auto desc = config_reader.Next();
             if (auto ep_desc = DescriptorDynamicCast<EndpointDescriptor>(desc)) {
                 auto conf = MakeEPConfig(*ep_desc);
-                //Log(kDebug, conf);
+                Log(kDebug, conf);
 
                 ep_configs_[num_ep_configs_] = conf;
                 ++num_ep_configs_;
                 class_drivers_[conf.ep_id.Number()] = class_driver;
             } else if (auto hid_desc = DescriptorDynamicCast<HIDDescriptor>(desc)) {
-                //Log(kDebug, *hid_desc);
+                Log(kDebug, *hid_desc);
             }
         }
 

@@ -2,6 +2,46 @@
 
 namespace usb::xhci {
 
+const std::array<const char*, 37> kTRBCompletionCodeToName{
+    "Invalid",
+    "Success",
+    "Data Buffer Error",
+    "Babble Detected Error",
+    "USB Transaction Error",
+    "TRB Error",
+    "Stall Error",
+    "Resource Error",
+    "Bandwidth Error",
+    "No Slots Available Error",
+    "Invalid Stream Type Error",
+    "Slot Not Enabled Error",
+    "Endpoint Not Enabled Error",
+    "Short Packet",
+    "Ring Underrun",
+    "Ring Overrun",
+    "VF Event Ring Full Error",
+    "Parameter Error",
+    "Bandwidth Overrun Error",
+    "Context State Error",
+    "No ping Response Error",
+    "Event Ring Full Error",
+    "Incompatible Device Error",
+    "Missed Service Error",
+    "Command Ring Stopped",
+    "Command Aborted",
+    "Stopped",
+    "Stopped - Length Invalid",
+    "Stopped - Short Packet",
+    "Max Exit Latency Too Large Error",
+    "Reserved",
+    "Isoch Buffer Overrun",
+    "Event Lost Error",
+    "Undefined Error",
+    "Invalid Stream ID Error",
+    "Secondary Bandwidth Error",
+    "Split Transaction Error",
+};
+
 const std::array<const char*, 64> kTRBTypeToName{
     "Reserved",                             // 0
     "Normal",

@@ -454,10 +454,13 @@ Error ProcessEvent(Controller& xhc) {
     Error err = MAKE_ERROR(Error::kNotImplemented);
     auto event_trb = xhc.PrimaryEventRing()->Front();
     if (auto trb = TRBDynamicCast<TransferEventTRB>(event_trb)) {
+        Log(kDebug, "OnEvent 1\n");
         err = OnEvent(xhc, *trb);
     } else if (auto trb = TRBDynamicCast<PortStatusChangeEventTRB>(event_trb)) {
+        Log(kDebug, "OnEvent 2\n");
         err = OnEvent(xhc, *trb);
     } else if (auto trb = TRBDynamicCast<CommandCompletionEventTRB>(event_trb)) {
+        Log(kDebug, "OnEvent 3\n");
         err = OnEvent(xhc, *trb);
     }
     xhc.PrimaryEventRing()->Pop();
