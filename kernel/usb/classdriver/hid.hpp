@@ -17,11 +17,13 @@ public:
 
     const static size_t kBufferSize = 1024;
     const std::array<uint8_t, kBufferSize>& Buffer() const { return buf_; }
+
+    int in_packet_size_;
 private:
     EndpointID ep_interrupt_in_;
     EndpointID ep_interrupt_out_;
     const int interface_index_;
-    int in_packet_size_;
+
     int initialize_phase_{0};
 
     std::array<uint8_t, kBufferSize> buf_{}, previous_buf_{};

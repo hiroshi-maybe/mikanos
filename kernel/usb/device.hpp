@@ -34,7 +34,7 @@ protected:
     Error OnInterruptCompleted(EndpointID ep_id, const void* buf, int len);
 private:
     std::array<ClassDriver*, 16> class_drivers_{};
-    std::array<uint8_t, 16> buf_{};
+    std::array<uint8_t, 256> buf_{};
     uint8_t num_configurations_;
     uint8_t config_index_;
     bool is_initialized_ = false;

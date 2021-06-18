@@ -11,10 +11,13 @@ HIDMouseDriver::HIDMouseDriver(Device* dev, int interface_index)
 {}
 
 Error HIDMouseDriver::OnDataReceived() {
+    Log(kDebug, "HIDMouseDriver::OnDataReceived begin\n");
     int8_t displacement_x = Buffer()[1];
     int8_t displacement_y = Buffer()[2];
     NotifyMouseMove(displacement_x, displacement_y);
-    Log(kDebug, "%02x,(%03d,%03d)\n", Buffer()[0], displacement_x, displacement_y);
+    Log(kDebug, "%02x,(%3d,%3d)\n", Buffer()[0], displacement_x, displacement_y);
+    Log(kDebug, "HIDMouseDriver::OnDataReceived end\n");
+    return MAKE_ERROR(Error::kSuccess);
 }
 
 void* HIDMouseDriver::operator new(size_t size) {
@@ -25,7 +28,7 @@ void HIDMouseDriver::operator delete(void* ptr) noexcept {
     FreeMem(ptr);
 }
 
-void HIDMouseDriver::SubscribeMouseMove(std::function<HIDMouseDriver::ObserverType> observer) {
+void HIDMouseDriver::SubscribeMouseMove(std::function<void (int8_t displacement_x, int8_t displacement_y)> observer) {
     observers_[num_observers_++] = observer;
 }
 

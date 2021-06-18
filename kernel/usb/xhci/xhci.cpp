@@ -156,6 +156,7 @@ Error CompleteConfiguration(Controller& xhc, uint8_t port_id, uint8_t slot_id) {
     Log(kDebug, "CompleteConfiguration: port_id = %d, slot_id = %d\n", port_id, slot_id);
 
     auto dev = xhc.DeviceManager()->FindBySlot(slot_id);
+    Log(kDebug, "CompleteConfiguration: dev found\n");
     if (dev == nullptr) return MAKE_ERROR(Error::kInvalidSlotID);
 
     dev->OnEndpointsConfigured();
@@ -454,13 +455,13 @@ Error ProcessEvent(Controller& xhc) {
     Error err = MAKE_ERROR(Error::kNotImplemented);
     auto event_trb = xhc.PrimaryEventRing()->Front();
     if (auto trb = TRBDynamicCast<TransferEventTRB>(event_trb)) {
-        Log(kDebug, "OnEvent 1\n");
+        Log(kDebug, "OnEvent TransferEventTRB\n");
         err = OnEvent(xhc, *trb);
     } else if (auto trb = TRBDynamicCast<PortStatusChangeEventTRB>(event_trb)) {
-        Log(kDebug, "OnEvent 2\n");
+        Log(kDebug, "OnEvent PortStatusChangeEventTRB\n");
         err = OnEvent(xhc, *trb);
     } else if (auto trb = TRBDynamicCast<CommandCompletionEventTRB>(event_trb)) {
-        Log(kDebug, "OnEvent 3\n");
+        Log(kDebug, "OnEvent CommandCompletionEventTRB\n");
         err = OnEvent(xhc, *trb);
     }
     xhc.PrimaryEventRing()->Pop();

@@ -110,6 +110,7 @@ Error Device::ControlIn(EndpointID ep_id, SetupData setup_data,
 
 Error Device::ControlOut(EndpointID ep_id, SetupData setup_data,
                            const void* buf, int len, ClassDriver* issuer) {
+    Log(kDebug, "kernel/usb/Device::ControlOut\n");
     if (issuer) {
         event_waiters_.Put(setup_data, issuer);
     }
@@ -132,11 +133,18 @@ Error Device::StartInitialize() {
 }
 
 Error Device::OnEndpointsConfigured() {
+    Log(kDebug, "Device::OnEndpointsConfigured begin, %d\n", class_drivers_.size());
+    int i = 0;
     for (auto class_driver : class_drivers_) {
-        if (auto err = class_driver->OnEndpointsConfigured()) {
-            return err;
+        if (class_driver != nullptr) {
+            Log(kDebug, "Device::OnEndpointsConfigured, interface %d\n", i++);
+            if (auto err = class_driver->OnEndpointsConfigured()) {
+                Log(kDebug, "Device::OnEndpointsConfigured: error in class drivers\n");
+                return err;
+            }
         }
     }
+    Log(kDebug, "Device::OnEndpointsConfigured ended\n");
     return MAKE_ERROR(Error::kSuccess);
 }
 
@@ -154,7 +162,6 @@ Error Device::OnControlCompleted(EndpointID ep_id, SetupData setup_data,
 
     const uint8_t* buf8 = reinterpret_cast<const uint8_t*>(buf);
     if (initialize_phase_ == 1) {
-        Log(kDebug, "***initialize phase 1: %d\n", setup_data.request);
         if (setup_data.request == request::kGetDescriptor && DescriptorDynamicCast<DeviceDescriptor>(buf8)) {
             return InitializePhase1(buf8, len);
         }
@@ -162,7 +169,6 @@ Error Device::OnControlCompleted(EndpointID ep_id, SetupData setup_data,
     }
 
     if (initialize_phase_ == 2) {
-        Log(kDebug, "***initialize phase 2: %d\n", setup_data.request);
         if (setup_data.request == request::kGetDescriptor && DescriptorDynamicCast<ConfigurationDescriptor>(buf8)) {
             return InitializePhase2(buf8, len);
         }
@@ -170,7 +176,7 @@ Error Device::OnControlCompleted(EndpointID ep_id, SetupData setup_data,
     }
 
     if (initialize_phase_ == 3) {
-        if (setup_data.request == request::kGetDescriptor && DescriptorDynamicCast<DeviceDescriptor>(buf8)) {
+        if (setup_data.request == request::kSetConfiguration) {
             return InitializePhase3(setup_data.value & 0xffu);
         }
         return MAKE_ERROR(Error::kInvalidPhase);

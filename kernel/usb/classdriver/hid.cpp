@@ -22,6 +22,7 @@ Error HIDBaseDriver::SetEndpoint(const EndpointConfig& config) {
 }
 
 Error HIDBaseDriver::OnEndpointsConfigured() {
+    Log(kDebug, "HIDBaseDriver::OnEndpointsConfigured\n");
     SetupData setup_data{};
     setup_data.request_type.bits.direction = request_type::kOut;
     setup_data.request_type.bits.type = request_type::kClass;
@@ -49,9 +50,13 @@ Error HIDBaseDriver::OnControlCompleted(EndpointID ep_id, SetupData setup_data,
 }
 
 Error HIDBaseDriver::OnInterruptCompleted(EndpointID ep_id, const void* buf, int len) {
+    Log(kDebug, "HIDBaseDriver::OnInterruptCompleted begin\n");
     if (ep_id.IsIn()) {
+        Log(kDebug, "HIDBaseDriver::OnInterruptCompleted OnDataReceived - before\n");
         OnDataReceived();
+        Log(kDebug, "HIDBaseDriver::OnInterruptCompleted OnDataReceived - after\n");
         std::copy_n(buf_.begin(), len, previous_buf_.begin());
+        Log(kDebug, "HIDBaseDriver::OnInterruptCompleted copy_n\n");
         return ParentDevice()->InterruptIn(ep_interrupt_in_, buf_.data(), in_packet_size_);
     }
 

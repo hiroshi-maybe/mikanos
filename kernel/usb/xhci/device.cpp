@@ -143,6 +143,7 @@ Error Device::ControlIn(EndpointID ep_id, SetupData setup_data,
 
 Error Device::ControlOut(EndpointID ep_id, SetupData setup_data,
                            const void* buf, int len, ClassDriver* issuer) {
+    Log(kDebug, "kernel/usb/xhci/Device::ControlOut\n");
     if (auto err = usb::Device::ControlOut(ep_id, setup_data, buf, len, issuer)) {
         return err;
     }
@@ -189,6 +190,7 @@ Error Device::ControlOut(EndpointID ep_id, SetupData setup_data,
 }
 
 Error Device::InterruptIn(EndpointID ep_id, void* buf, int len) {
+    Log(kDebug, "Device::InterruptIn begin\n");
     if (auto err = usb::Device::InterruptIn(ep_id, buf, len)) return err;
 
     const DeviceContextIndex dci{ep_id};
@@ -203,6 +205,7 @@ Error Device::InterruptIn(EndpointID ep_id, void* buf, int len) {
 
     tr->Push(normal);
     dbreg_->Ring(dci.value);
+    Log(kDebug, "Device::InterruptIn end\n");
     return MAKE_ERROR(Error::kSuccess);
 }
 
