@@ -5,6 +5,7 @@
 #include "frame_buffer_config.hpp"
 #include "font.hpp"
 #include "graphics.hpp"
+#include "interrupt.hpp"
 #include "logger.hpp"
 #include "mouse.hpp"
 #include "pci.hpp"
@@ -59,6 +60,20 @@ void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
 
 char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
 PixelWriter* pixel_writer;
+
+usb::xhci::Controller* xhc;
+
+__attribute__((interrupt))
+void IntHandlerXHCI(InterruptFrame* frame) {
+    while (xhci->PrimaryEventRing()->HasFront()) {
+        if (auto err = ProcessEvent(xhc)) {
+            Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
+        }
+    }
+
+    NotifyEndOfInterrupt();
+}
+
 extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
     switch  (frame_buffer_config.pixel_format) {
         case kPixelRGBResv8BitPerColor:
@@ -143,12 +158,6 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
                 Log(kError, "failed to configure port; %s at %s:%d\n", err.Name(), err.File(), err.Line());
                 continue;
             }
-        }
-    }
-
-    while (1) {
-        if (auto err = ProcessEvent(xhc)) {
-            Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
         }
     }
 
