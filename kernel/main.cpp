@@ -83,7 +83,7 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
     DrawRectangle(*pixel_writer, {10, kFrameHeight - 40}, {30, 30}, {160, 160, 160});
 
     console = new(console_buf) Console{*pixel_writer, kDesktopFGColor, kDesktopBGColor};
-    SetLogLevel(kDebug);
+    SetLogLevel(kInfo);
 
     mouse_cursor = new(mouse_cursor_buf) MouseCursor{
         pixel_writer, kDesktopBGColor, {300, 200}
