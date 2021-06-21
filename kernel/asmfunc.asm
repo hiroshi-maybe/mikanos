@@ -23,3 +23,23 @@ IoIn32:
     mov dx, di  ; dx = addr
     in eax, dx  ; IN instruction reads from an I/O device
     ret
+
+; uint16_t GetCS(void);
+global GetCS
+GetCS:
+    xor eax, eax ; clears upper 32 bits of rax
+    mov ax, cs
+    ret
+
+; void LoadIDT(uint16_t limit, uint64_t offset);
+global LoadIDT
+LoadIDT:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 10 ; make 10 bytes memory space (rsp = rbp - 10)
+    mov [rsp], di   ; move limit in the RDI register (first arg)
+    mov [rsp + 2], rsi  ; move offset in the RSI register (second arg)
+    lidt [rsp]
+    mov rsp, rbp
+    pop rbp
+    ret

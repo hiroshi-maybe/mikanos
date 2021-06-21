@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <cstdio>
+#include "asmfunc.h"
 #include "console.hpp"
 #include "frame_buffer_config.hpp"
 #include "font.hpp"
@@ -65,8 +66,8 @@ usb::xhci::Controller* xhc;
 
 __attribute__((interrupt))
 void IntHandlerXHCI(InterruptFrame* frame) {
-    while (xhci->PrimaryEventRing()->HasFront()) {
-        if (auto err = ProcessEvent(xhc)) {
+    while (xhc->PrimaryEventRing()->HasFront()) {
+        if (auto err = ProcessEvent(*xhc)) {
             Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
         }
     }
@@ -127,6 +128,11 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
         Log(kInfo, "xHC has been found: %d.%d.%d\n",
             xhc_dev->bus, xhc_dev->device, xhc_dev->function);
     }
+
+    const uint16_t cs = GetCS();
+    SetIDTEntry(idt[InterruptVector::kXHCI], MakeIDTAttr(DescriptorType::kInterruptGate, 0),
+                reinterpret_cast<uint64_t>(IntHandlerXHCI), cs);
+    LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
 
     const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
     Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
