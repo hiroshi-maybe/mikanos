@@ -15,6 +15,7 @@
 
 const PixelColor kDesktopBGColor{45, 118, 237};
 const PixelColor kDesktopFGColor{255, 255, 255};
+const uint32_t LOCAL_APIC_ID_REG_ADDR = 0xfee00020;
 
 void operator delete(void* obj) noexcept {}
 
@@ -66,6 +67,7 @@ usb::xhci::Controller* xhc;
 
 __attribute__((interrupt))
 void IntHandlerXHCI(InterruptFrame* frame) {
+    Log(kDebug, "Interrupt happened\n");
     while (xhc->PrimaryEventRing()->HasFront()) {
         if (auto err = ProcessEvent(*xhc)) {
             Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
@@ -134,6 +136,11 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
                 reinterpret_cast<uint64_t>(IntHandlerXHCI), cs);
     LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
 
+    const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t*>(0xfee00020) >> 24;
+    pci::ConfigureMSIFixedDestination(
+        *xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
+        pci::MSIDeliveryMode::kFixed, InterruptVector::kXHCI, 0);
+
     const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
     Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
     // bitwise & with 0xfffffffffffffff0 (64 bit integer)
@@ -152,6 +159,9 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
 
     Log(kInfo, "xHC starting\n");
     xhc.Run();
+
+    ::xhc = &xhc;
+    __asm__("sti");
 
     usb::HIDMouseDriver::default_observer = MouseObserver;
 
