@@ -8,6 +8,7 @@ public:
     enum Code {
         kSuccess,
         kFull,
+        kEmpty,
         kNoEnoughMemory,
         kIndexOutOfRange,
         kInvalidSlotID,
@@ -28,6 +29,7 @@ private:
     static constexpr std::array code_names_{
         "kSuccess",
         "kFull",
+        "kEmpty",
         "kNoEnoughMemory",
         "kIndexOutOfRange",
         "kInvalidSlotID",
