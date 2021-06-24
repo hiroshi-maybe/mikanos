@@ -10,6 +10,7 @@
 #include "logger.hpp"
 #include "mouse.hpp"
 #include "pci.hpp"
+#include "queue.hpp"
 #include "usb/classdriver/mouse.hpp"
 #include "usb/xhci/xhci.hpp"
 
@@ -65,16 +66,27 @@ PixelWriter* pixel_writer;
 
 usb::xhci::Controller* xhc;
 
+struct Message {
+    enum Type {
+        kInterruptXHCI,
+    } type;
+};
+
+ArrayQueue<Message>* main_queue;
+
 __attribute__((interrupt))
 void IntHandlerXHCI(InterruptFrame* frame) {
     Log(kDebug, "Interrupt happened\n");
+    main_queue->Push(Message{Message::kInterruptXHCI});
+    NotifyEndOfInterrupt();
+}
+
+void onInterruptXHCIMessage() {
     while (xhc->PrimaryEventRing()->HasFront()) {
         if (auto err = ProcessEvent(*xhc)) {
             Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
         }
     }
-
-    NotifyEndOfInterrupt();
 }
 
 extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
@@ -106,6 +118,10 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
     mouse_cursor = new(mouse_cursor_buf) MouseCursor{
         pixel_writer, kDesktopBGColor, {300, 200}
     };
+
+    std::array<Message, 32> main_queue_data;
+    ArrayQueue<Message> main_queue{main_queue_data};
+    ::main_queue = &main_queue;
 
     auto err = pci::ScanAllBus();
     Log(kDebug, "ScanAllBus: %s (%d devices)\n", err.Name(), pci::num_device);
@@ -161,7 +177,6 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
     xhc.Run();
 
     ::xhc = &xhc;
-    __asm__("sti");
 
     usb::HIDMouseDriver::default_observer = MouseObserver;
 
@@ -174,6 +189,26 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config) {
                 Log(kError, "failed to configure port; %s at %s:%d\n", err.Name(), err.File(), err.Line());
                 continue;
             }
+        }
+    }
+
+    while (true) {
+        __asm__("cli");
+        if (main_queue.Count() == 0) {
+            __asm__("sti\n\thlt");
+            continue;
+        }
+
+        Message msg = main_queue.Front();
+        main_queue.Pop();
+        __asm__("sti");
+
+        switch (msg.type) {
+        case Message::kInterruptXHCI:
+            onInterruptXHCIMessage();
+            break;
+        default:
+            Log(kError, "Unknown message type: %d\n", msg.type);
         }
     }
 
