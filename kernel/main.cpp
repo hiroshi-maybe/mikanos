@@ -91,7 +91,14 @@ void onInterruptXHCIMessage() {
     }
 }
 
-extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config, const MemoryMap& memory_map) {
+alignas(16) uint8_t kernel_main_stack[1024 * 1024];
+
+extern "C" void KernelMainNewStack(
+    const FrameBufferConfig& frame_buffer_config_ref, const MemoryMap& memory_map_ref)
+{
+    FrameBufferConfig frame_buffer_config{frame_buffer_config_ref};
+    MemoryMap memory_map{memory_map_ref};
+
     switch  (frame_buffer_config.pixel_format) {
         case kPixelRGBResv8BitPerColor:
             pixel_writer = new(pixel_writer_buf)
@@ -123,7 +130,6 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config, const MemoryM
         MemoryType::kEfiConventionalMemory,
     };
 
-    printk("memory_map: %p\n", &memory_map);
     for (uintptr_t iter = reinterpret_cast<uintptr_t>(memory_map.buffer);
         iter < reinterpret_cast<uintptr_t>(memory_map.buffer) + memory_map.map_size;
         iter += memory_map.descriptor_size)
@@ -133,7 +139,7 @@ extern "C" void KernelMain(FrameBufferConfig& frame_buffer_config, const MemoryM
             if (desc->type == available_memory_types[i]) {
                 printk("type = %u, phy = %08lx - %08lx, pages = %lu, attr = %08lx\n",
                     desc->type, desc->physical_start,
-                    desc->physical_start + desc->number_of_pages * 4096 - 1,
+                    desc->physical_start + desc->number_of_pages * kUEFIPageSize - 1,
                     desc->number_of_pages, desc->attribute);
             }
         }
