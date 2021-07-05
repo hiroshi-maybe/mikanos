@@ -13,6 +13,7 @@
 #include "mouse.hpp"
 #include "pci.hpp"
 #include "queue.hpp"
+#include "segment.hpp"
 #include "usb/classdriver/mouse.hpp"
 #include "usb/xhci/xhci.hpp"
 
@@ -123,6 +124,15 @@ extern "C" void KernelMainNewStack(
 
     console = new(console_buf) Console{*pixel_writer, kDesktopFGColor, kDesktopBGColor};
     SetLogLevel(kInfo);
+
+    SetupSegments();
+
+    const uint16_t kernel_cs = 1 << 3;
+    const uint16_t kernel_ss = 2 << 3;
+    SetDSAll(0); // Point segment registers to the null descriptor
+    SetCSSS(kernel_cs, kernel_ss);
+
+    // SetupIdentityPageTable();
 
     const std::array available_memory_types{
         MemoryType::kEfiBootServicesCode,

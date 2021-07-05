@@ -37,9 +37,46 @@ LoadIDT:
     push rbp
     mov rbp, rsp
     sub rsp, 10 ; make 10 bytes memory space (rsp = rbp - 10)
-    mov [rsp], di   ; move limit in the RDI register (first arg)
-    mov [rsp + 2], rsi  ; move offset in the RSI register (second arg)
+    mov [rsp], di   ; move limit (first arg) in the RDI register
+    mov [rsp + 2], rsi  ; move offset (second arg) in the RSI register
     lidt [rsp]
+    mov rsp, rbp
+    pop rbp
+    ret
+
+; void LoadGDT(uint16_t limit, uint64_t offset);
+global LoadGDT
+LoadGDT:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 10 ; make 10 bytes memory space
+    mov [rsp], di ; move limit (first arg) in the RDI register
+    mov [rsp + 2], rsi ; move offset (second arg) in the RSI register
+    lgdt [rsp] ; move offset and limit to GDT register
+    mov rsp, rbp
+    pop rbp
+    ret
+
+; void SetDSAll(uint16_t value);
+global SetDSAll
+SetDSAll:
+    mov ds, di
+    mov es, di
+    mov fs, di
+    mov gs, di
+    ret
+
+; void SetCSSS(uint16_t cs, uint16_t ss);
+global SetCSSS
+SetCSSS:
+    push rbp
+    mov rbp, rsp
+    mov ss, si ; SS register points to gdt[2]
+    mov rax, .next
+    push rdi ; CS register points to gdt[1]
+    push rax
+    o64 retf
+.next:
     mov rsp, rbp
     pop rbp
     ret
