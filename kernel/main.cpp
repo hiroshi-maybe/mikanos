@@ -11,6 +11,7 @@
 #include "logger.hpp"
 #include "memory_map.hpp"
 #include "mouse.hpp"
+#include "paging.hpp"
 #include "pci.hpp"
 #include "queue.hpp"
 #include "segment.hpp"
@@ -132,26 +133,19 @@ extern "C" void KernelMainNewStack(
     SetDSAll(0); // Point segment registers to the null descriptor
     SetCSSS(kernel_cs, kernel_ss);
 
-    // SetupIdentityPageTable();
+    SetupIdentityPageTable();
 
-    const std::array available_memory_types{
-        MemoryType::kEfiBootServicesCode,
-        MemoryType::kEfiBootServicesData,
-        MemoryType::kEfiConventionalMemory,
-    };
-
-    for (uintptr_t iter = reinterpret_cast<uintptr_t>(memory_map.buffer);
-        iter < reinterpret_cast<uintptr_t>(memory_map.buffer) + memory_map.map_size;
+    const auto memory_map_base = reinterpret_cast<uintptr_t>(memory_map.buffer);
+    for (uintptr_t iter = memory_map_base;
+        iter < memory_map_base + memory_map.map_size;
         iter += memory_map.descriptor_size)
     {
         auto desc = reinterpret_cast<MemoryDescriptor*>(iter);
-        for (int i = 0; i < available_memory_types.size(); ++i) {
-            if (desc->type == available_memory_types[i]) {
-                printk("type = %u, phy = %08lx - %08lx, pages = %lu, attr = %08lx\n",
+        if (IsAvailable(static_cast<MemoryType>(desc->type))) {
+            printk("type = %u, phy = %08lx - %08lx, pages = %lu, attr = %08lx\n",
                     desc->type, desc->physical_start,
                     desc->physical_start + desc->number_of_pages * kUEFIPageSize - 1,
                     desc->number_of_pages, desc->attribute);
-            }
         }
     }
 
@@ -187,9 +181,8 @@ extern "C" void KernelMainNewStack(
             xhc_dev->bus, xhc_dev->device, xhc_dev->function);
     }
 
-    const uint16_t cs = GetCS();
     SetIDTEntry(idt[InterruptVector::kXHCI], MakeIDTAttr(DescriptorType::kInterruptGate, 0),
-                reinterpret_cast<uint64_t>(IntHandlerXHCI), cs);
+                reinterpret_cast<uint64_t>(IntHandlerXHCI), kernel_cs);
     LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
 
     const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t*>(0xfee00020) >> 24;

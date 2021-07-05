@@ -81,6 +81,12 @@ SetCSSS:
     pop rbp
     ret
 
+; void SetCR3(uint64_t value);
+global SetCR3
+SetCR3:
+    mov cr3, rdi
+    ret
+
 extern kernel_main_stack
 extern KernelMainNewStack
 
