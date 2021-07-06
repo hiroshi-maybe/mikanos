@@ -156,10 +156,10 @@ extern "C" void KernelMainNewStack(
 
         const auto physical_end = desc->physical_start + desc->number_of_pages * kUEFIPageSize;
         if (IsAvailable(static_cast<MemoryType>(desc->type))) {
-            printk("type = %u, phy = %08lx - %08lx, pages = %lu, attr = %08lx\n",
-                    desc->type, desc->physical_start,
-                    desc->physical_start + desc->number_of_pages * kUEFIPageSize - 1,
-                    desc->number_of_pages, desc->attribute);
+            Log(kDebug, "type = %u, phy = %08lx - %08lx, pages = %lu, attr = %08lx\n",
+                desc->type, desc->physical_start,
+                desc->physical_start + desc->number_of_pages * kUEFIPageSize - 1,
+                desc->number_of_pages, desc->attribute);
             available_end = physical_end;
         } else {
             memory_manager->MarkAllocated(
@@ -205,7 +205,7 @@ extern "C" void KernelMainNewStack(
                 reinterpret_cast<uint64_t>(IntHandlerXHCI), kernel_cs);
     LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
 
-    const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t*>(0xfee00020) >> 24;
+    const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t*>(LOCAL_APIC_ID_REG_ADDR) >> 24;
     pci::ConfigureMSIFixedDestination(
         *xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
         pci::MSIDeliveryMode::kFixed, InterruptVector::kXHCI, 0);

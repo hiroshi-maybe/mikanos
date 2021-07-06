@@ -24,7 +24,7 @@ struct InterruptDescriptor {
     uint16_t offset_middle;
     uint32_t offset_high;
     uint32_t reserved;
-};
+} __attribute__((packed));
 
 extern std::array<InterruptDescriptor, 256> idt;
 
