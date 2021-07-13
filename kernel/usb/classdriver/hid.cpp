@@ -8,8 +8,8 @@ namespace usb {
 HIDBaseDriver::HIDBaseDriver(Device* dev, int interface_index,
                              int in_packet_size):
     ClassDriver{dev},
-    interface_index_{interface_index},
-    in_packet_size_{in_packet_size}
+    in_packet_size_{in_packet_size},
+    interface_index_{interface_index}
 {}
 
 Error HIDBaseDriver::SetEndpoint(const EndpointConfig& config) {
