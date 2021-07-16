@@ -21,20 +21,22 @@ private:
     Window& window_;
 };
 
-Window(int width, int height, PixelFormat shadow_format);
-~Window() = default;
-Window(const Window& rhs) = delete;
-Window& operator=(const Window& rhs) = delete;
+    Window(int width, int height, PixelFormat shadow_format);
+    ~Window() = default;
+    Window(const Window& rhs) = delete;
+    Window& operator=(const Window& rhs) = delete;
 
-void DrawTo(FrameBuffer& dst, Vector2D<int> position);
-void SetTransparentColor(std::optional<PixelColor> c);
-WindowWriter* Writer();
+    void DrawTo(FrameBuffer& dst, Vector2D<int> position);
+    void SetTransparentColor(std::optional<PixelColor> c);
+    WindowWriter* Writer();
 
-const PixelColor& At(int x, int y) const;
-void Write(Vector2D<int> pos, PixelColor c);
+    const PixelColor& At(int x, int y) const;
+    void Write(Vector2D<int> pos, PixelColor c);
 
-int Width() const;
-int Height() const;
+    int Width() const;
+    int Height() const;
+
+    void Move(Vector2D<int> dst_pos, const Rectangle<int>& src);
 
 private:
     int width_, height_;
