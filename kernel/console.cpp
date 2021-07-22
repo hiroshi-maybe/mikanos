@@ -3,6 +3,7 @@
 #include "console.hpp"
 #include "font.hpp"
 #include "layer.hpp"
+#include "logger.hpp"
 
 Console::Console(const PixelColor& fg_color, const PixelColor& bg_color)
     :  fg_color_{fg_color}, bg_color_{bg_color}, buffer_{},
@@ -10,6 +11,7 @@ Console::Console(const PixelColor& fg_color, const PixelColor& bg_color)
 {}
 
 void Console::PutString(const char* s) {
+    // SetLogLevel(kDebug);
     while (*s) {
         if (*s == '\n') {
             cursor_column_ = 0;
@@ -21,6 +23,7 @@ void Console::PutString(const char* s) {
         }
         ++s;
     }
+    // SetLogLevel(kInfo);
 
     if (layer_manager) layer_manager->Draw();
 }
@@ -45,10 +48,11 @@ void Console::Newline() {
     }
 
     if (window_) {
-        Vector2D<int> pos_to_move = {0, PIXEL_HEIGHT_PER_CHAR};
-        Vector2D<int> size_to_move = {PIXEL_WIDTH_PER_CHAR * kColumns, PIXEL_HEIGHT_PER_CHAR * (kRows - 1)};
-        Rectangle<int> move_src{pos_to_move, size_to_move};
+        Vector2D<int> src_pos = {0, PIXEL_HEIGHT_PER_CHAR};
+        Vector2D<int> src_size = {PIXEL_WIDTH_PER_CHAR * kColumns, PIXEL_HEIGHT_PER_CHAR * (kRows - 1)};
+        Rectangle<int> move_src{src_pos, src_size};
         Vector2D<int> dest_pos = {0, 0};
+        // Log(kDebug, "Newline(): (%d, %d) -> (%d, %d)\n", src_pos.x, src_pos.y, dest_pos.x, dest_pos.y);
         window_->Move(dest_pos, move_src);
         // Paint the back color of the last row
         FillRectangle(*writer_, {0, PIXEL_HEIGHT_PER_CHAR * (kRows - 1)}, {PIXEL_WIDTH_PER_CHAR * kColumns, PIXEL_HEIGHT_PER_CHAR}, bg_color_);

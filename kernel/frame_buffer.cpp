@@ -10,12 +10,8 @@ int BytesPerPixel(PixelFormat format) {
     return -1;
 }
 
-int calc_buf_size(int bytes_per_pixel, int width, int height, int x_offset) {
-    return bytes_per_pixel * width * height + x_offset;
-}
-
 uint8_t* FrameAddrAt(Vector2D<int> pos, const FrameBufferConfig& config) {
-    return config.frame_buffer + BytesPerPixel(config.pixel_format) * config.pixels_per_scan_line * pos.y + pos.x;
+    return config.frame_buffer + BytesPerPixel(config.pixel_format) * (config.pixels_per_scan_line * pos.y + pos.x);
 }
 
 int BytesPerScanLine(const FrameBufferConfig& config) {
@@ -40,8 +36,7 @@ Error FrameBuffer::Initialize(const FrameBufferConfig& config) {
     if (config_.frame_buffer) {
         buffer_.resize(0);
     } else {
-        auto buf_size = calc_buf_size(
-            bytes_per_pixel, config_.horizontal_resolution, config_.vertical_resolution, 0);
+        auto buf_size = bytes_per_pixel * config_.horizontal_resolution * config_.vertical_resolution;
         buffer_.resize(buf_size);
         config_.frame_buffer = buffer_.data();
         config_.pixels_per_scan_line = config_.horizontal_resolution;
@@ -95,6 +90,15 @@ void FrameBuffer::Move(Vector2D<int> dst_pos, const Rectangle<int>& src) {
         // upward
         uint8_t* dst_buf = FrameAddrAt(dst_pos, config_);
         const uint8_t* src_buf = FrameAddrAt(src.pos, config_);
+        for (int y = 0; y < src.size.y; ++y) {
+            memcpy(dst_buf, src_buf, bytes_per_pixel * src.size.x);
+            dst_buf += bytes_per_scan_line;
+            src_buf += bytes_per_scan_line;
+        }
+    } else {
+        // backward
+        uint8_t* dst_buf = FrameAddrAt(dst_pos + Vector2D<int>{0, src.size.y - 1}, config_);
+        const uint8_t* src_buf = FrameAddrAt(src.pos + Vector2D<int>{0, src.size.y - 1}, config_);
         for (int y = 0; y < src.size.y; ++y) {
             memcpy(dst_buf, src_buf, bytes_per_pixel * src.size.x);
             dst_buf -= bytes_per_scan_line;
