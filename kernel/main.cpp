@@ -299,7 +299,8 @@ extern "C" void KernelMainNewStack(
         .ID());
 
     layer_manager->UpDown(bglayer_id, 0);
-    layer_manager->UpDown(main_window_layer_id, 1);
+    layer_manager->UpDown(console->LayerID(), 1);
+    layer_manager->UpDown(main_window_layer_id, 2);
     layer_manager->UpDown(mouse_layer_id, 3);
     layer_manager->Draw({{0, 0}, screen_size});
 

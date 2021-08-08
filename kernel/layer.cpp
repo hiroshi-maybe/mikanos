@@ -51,12 +51,12 @@ void LayerManager::Draw(unsigned int id) const {
     }
 }
 
-void LayerManager::Move(unsigned int id, Vector2D<int> new_position) {
+void LayerManager::Move(unsigned int id, Vector2D<int> new_pos) {
     auto layer = FindLayer(id);
     const auto window_size = layer->GetWindow()->Size();
     const auto old_pos = layer->GetPosition();
 
-    layer->Move(new_position);
+    layer->Move(new_pos);
     Draw({old_pos, window_size});
     Draw(id);
 }

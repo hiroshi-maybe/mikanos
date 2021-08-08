@@ -11,7 +11,6 @@ Console::Console(const PixelColor& fg_color, const PixelColor& bg_color)
 {}
 
 void Console::PutString(const char* s) {
-    // SetLogLevel(kDebug);
     while (*s) {
         if (*s == '\n') {
             cursor_column_ = 0;
@@ -23,7 +22,6 @@ void Console::PutString(const char* s) {
         }
         ++s;
     }
-    // SetLogLevel(kInfo);
 
     if (layer_manager) layer_manager->Draw(layer_id_);
 }
