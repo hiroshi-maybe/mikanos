@@ -72,7 +72,6 @@ struct Rectangle {
 
 template <typename T, typename U>
 Rectangle<T> operator&(const Rectangle<T>& lhs, const Rectangle<U>& rhs) {
-    /*
     auto is_intersecting = [](T lb1, T rb1, U lb2, U rb2) {
         auto lb = std::max(lb1, lb2), rb = std::min(rb1, rb2);
         return lb < rb;
@@ -81,18 +80,6 @@ Rectangle<T> operator&(const Rectangle<T>& lhs, const Rectangle<U>& rhs) {
     const auto rhs_end = rhs.pos + rhs.size;
     if (!is_intersecting(lhs.pos.x, lhs_end.x, rhs.pos.x, rhs_end.x) ||
         !is_intersecting(lhs.pos.y, lhs_end.y, rhs.pos.y, rhs_end.y))
-    {
-        return {{0, 0}, {0, 0}};
-    }
-
-    auto new_pos = ElementMax(lhs.pos, rhs.pos);
-    auto new_size = ElementMin(lhs_end, rhs_end) - new_pos;
-    return {new_pos, new_size};*/
-
-    const auto lhs_end = lhs.pos + lhs.size;
-    const auto rhs_end = rhs.pos + rhs.size;
-    if (lhs_end.x < rhs.pos.x || lhs_end.y < rhs.pos.y ||
-        rhs_end.x < lhs.pos.x || rhs_end.y < lhs.pos.y)
     {
         return {{0, 0}, {0, 0}};
     }
