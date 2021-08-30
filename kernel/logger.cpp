@@ -13,6 +13,7 @@ extern Console* console;
 void SetLogLevel(LogLevel level) {
     log_level = level;
 }
+LogLevel GetLogLevel() { return log_level; }
 
 int Log(LogLevel level, const char* format, ...) {
     if (level > log_level) return 0;
