@@ -51,12 +51,45 @@ unsigned int mouse_layer_id;
 Vector2D<int> screen_size;
 Vector2D<int> mouse_position;
 
-void MouseObserver(int8_t displacement_x, int8_t displacement_y) {
+// bit position 0 is for left button (1: right button, 2: center button)
+const int LEFT_MOUSE_BUTTON_MASK = 0x01;
+
+void MouseObserver(uint8_t buttons, int8_t displacement_x, int8_t displacement_y) {
+    static unsigned int mouse_drag_layer_id = 0;
+    static uint8_t previous_buttons = 0;
+
+    const auto oldpos = mouse_position;
     auto new_pos = mouse_position + Vector2D<int>{displacement_x, displacement_y};
     new_pos = ElementMin(new_pos, screen_size + Vector2D<int>{-1, -1});
     mouse_position = ElementMax(new_pos, {0, 0});
 
-    layer_manager->Move(mouse_layer_id, mouse_position);
+    DebugLog([&]() {
+        Log(kDebug, "mouse position: (%d, %d)\n", mouse_position.x, mouse_position.y);
+
+        const auto posdiff = mouse_position - oldpos;
+
+        layer_manager->Move(mouse_layer_id, mouse_position);
+
+        const bool previous_left_pressed = (previous_buttons & LEFT_MOUSE_BUTTON_MASK);
+        const bool left_pressed = (buttons & LEFT_MOUSE_BUTTON_MASK);
+
+        if (!previous_left_pressed && left_pressed) {
+            Log(kDebug, "has pressed left: %d\n", mouse_drag_layer_id);
+            // started dragging
+            auto layer = layer_manager->FindLayerByPosition(mouse_position, mouse_layer_id);
+            if (layer) mouse_drag_layer_id = layer->ID();
+        } else if (previous_left_pressed && left_pressed) {
+            Log(kDebug, "keep left pressed: %d\n", mouse_drag_layer_id);
+            // keep dragging
+            if (mouse_drag_layer_id > 0) layer_manager->MoveRelative(mouse_drag_layer_id, posdiff);
+        } else if (previous_left_pressed && !left_pressed) {
+            // stopped dragging
+            Log(kDebug, "Stopped pressing left: %d\n", mouse_drag_layer_id);
+            mouse_layer_id = 0;
+        }
+
+        previous_buttons = buttons;
+    });
 }
 
 void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
