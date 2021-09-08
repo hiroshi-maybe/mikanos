@@ -13,6 +13,8 @@ public:
     Layer& SetWindow(const std::shared_ptr<Window>& window);
     std::shared_ptr<Window> GetWindow() const;
     Vector2D<int> GetPosition() const;
+    Layer& SetDraggable(bool draggable);
+    bool IsDraggable() const;
 
     Layer& Move(Vector2D<int> pos);
     Layer& MoveRelative(Vector2D<int> pos_diff);
@@ -20,8 +22,9 @@ public:
     void DrawTo(FrameBuffer& screen, const Rectangle<int>& area) const;
 private:
     unsigned int id_;
-    Vector2D<int> pos_;
-    std::shared_ptr<Window> window_;
+    Vector2D<int> pos_{};
+    std::shared_ptr<Window> window_{};
+    bool draggable_{false};
 };
 
 class LayerManager {
