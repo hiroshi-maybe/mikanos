@@ -136,3 +136,5 @@ void DrawDesktop(PixelWriter& writer);
 
 extern FrameBufferConfig screen_config;
 Vector2D<int>ScreenSize();
+
+PixelWriter* MakeScreenWriter();
