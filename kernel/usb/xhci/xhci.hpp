@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "error.hpp"
 #include "usb/xhci/devmgr.hpp"
 #include "usb/xhci/port.hpp"
@@ -51,5 +53,9 @@ Error ConfigureEndpoints(Controller& xhc, Device& dev);
  * Processes an event at the head of XHC's primary event ring.
  */
 Error ProcessEvent(Controller& xhc);
+
+extern Controller* controller;
+void Initialize();
+void ProcessEvents();
 
 }

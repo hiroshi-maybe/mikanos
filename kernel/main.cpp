@@ -17,13 +17,8 @@
 #include "pci.hpp"
 #include "queue.hpp"
 #include "segment.hpp"
-#include "usb/device.hpp"
-#include "usb/memory.hpp"
-#include "usb/xhci/trb.hpp"
 #include "usb/xhci/xhci.hpp"
 #include "window.hpp"
-
-const uint32_t LOCAL_APIC_ID_REG_ADDR = 0xfee00020;
 
 void operator delete(void* obj) noexcept {}
 
@@ -46,30 +41,8 @@ int printk(const char* format, ...) {
 char memory_manager_buf[sizeof(BitmapMemoryManager)];
 BitmapMemoryManager* memory_manager;
 
-void SwitchEhci2Xhci(const pci::Device& xhc_dev) {
-    bool intel_ehc_exist = false;
-    for (int i=0; i < pci::num_device; ++i) {
-        if (pci::devices[i].class_code.Match(pci::CLASSCODE_EHCI) &&
-            pci::ReadVendorId(pci::devices[i]) == pci::VENDOR_ID_INTEL)
-        {
-            intel_ehc_exist = true;
-            break;
-        }
-    }
-
-    if(!intel_ehc_exist) return;
-
-    uint32_t superspeed_ports = pci::ReadConfReg(xhc_dev, pci::REG_ADDR_USB3PRM);
-    pci::WriteConfReg(xhc_dev, pci::REG_ADDR_USB3_PSSEN, superspeed_ports);
-    uint32_t ehci2xhci_ports = pci::ReadConfReg(xhc_dev, pci::REG_ADDR_XUSB2PRM);
-    pci::WriteConfReg(xhc_dev, pci::REG_ADDR_XUSB2PR, ehci2xhci_ports);
-    Log(kDebug, "SwitchEhci2Xhci: SS = %02, xHCI = %02x\n", superspeed_ports, ehci2xhci_ports);
-}
-
 char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
 PixelWriter* pixel_writer;
-
-usb::xhci::Controller* xhc;
 
 struct Message {
     enum Type {
@@ -84,14 +57,6 @@ void IntHandlerXHCI(InterruptFrame* frame) {
     Log(kDebug, "Interrupt happened\n");
     main_queue->Push(Message{Message::kInterruptXHCI});
     NotifyEndOfInterrupt();
-}
-
-void onInterruptXHCIMessage() {
-    while (xhc->PrimaryEventRing()->HasFront()) {
-        if (auto err = ProcessEvent(*xhc)) {
-            Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
-        }
-    }
 }
 
 alignas(16) uint8_t kernel_main_stack[1024 * 1024];
@@ -169,6 +134,11 @@ extern "C" void KernelMainNewStack(
     ArrayQueue<Message> main_queue{main_queue_data};
     ::main_queue = &main_queue;
 
+    SetIDTEntry(idt[InterruptVector::kXHCI], MakeIDTAttr(DescriptorType::kInterruptGate, 0),
+                reinterpret_cast<uint64_t>(IntHandlerXHCI), kernel_cs);
+    LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
+
+    // Initialize PCI
     auto err = pci::ScanAllBus();
     Log(kDebug, "ScanAllBus: %s (%d devices)\n", err.Name(), pci::num_device);
     for (int i = 0; i < pci::num_device; ++i) {
@@ -179,61 +149,7 @@ extern "C" void KernelMainNewStack(
             dev.bus, dev.device, dev.function, vendor_id, class_code.base, class_code.sub, class_code.interface, dev.header_type);
     }
 
-    pci::Device* xhc_dev = nullptr;
-    for (int i = 0; i < pci::num_device; ++i) {
-        if (pci::devices[i].class_code.Match(pci::CLASSCODE_EHCI)) {
-            xhc_dev = &pci::devices[i];
-
-            if (pci::ReadVendorId(*xhc_dev) == pci::VENDOR_ID_INTEL) break;
-        }
-    }
-
-    if (xhc_dev) {
-        Log(kInfo, "xHC has been found: %d.%d.%d\n",
-            xhc_dev->bus, xhc_dev->device, xhc_dev->function);
-    }
-
-    SetIDTEntry(idt[InterruptVector::kXHCI], MakeIDTAttr(DescriptorType::kInterruptGate, 0),
-                reinterpret_cast<uint64_t>(IntHandlerXHCI), kernel_cs);
-    LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
-
-    const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t*>(LOCAL_APIC_ID_REG_ADDR) >> 24;
-    pci::ConfigureMSIFixedDestination(
-        *xhc_dev, bsp_local_apic_id, pci::MSITriggerMode::kLevel,
-        pci::MSIDeliveryMode::kFixed, InterruptVector::kXHCI, 0);
-
-    const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
-    Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
-    // bitwise & with 0xfffffffffffffff0 (64 bit integer)
-    const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
-    Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
-
-    usb::xhci::Controller xhc{xhc_mmio_base};
-    if (pci::ReadVendorId(*xhc_dev) == pci::VENDOR_ID_INTEL) {
-        SwitchEhci2Xhci(*xhc_dev);
-    }
-
-    {
-        auto err = xhc.Initialize();
-        Log(kDebug, "xhc.Initialize: %s\n", err.Name());
-    }
-
-    Log(kInfo, "xHC starting\n");
-    xhc.Run();
-
-    ::xhc = &xhc;
-
-    for (int i = 0; i <= xhc.MaxPorts(); ++i) {
-        auto port = xhc.PortAt(i);
-        Log(kDebug, "Port %d: IsConnected=%d\n", i, port.IsConnected());
-
-        if (port.IsConnected()) {
-            if (auto err = ConfigurePort(xhc, port)) {
-                Log(kError, "failed to configure port; %s at %s:%d\n", err.Name(), err.File(), err.Line());
-                continue;
-            }
-        }
-    }
+    usb::xhci::Initialize();
 
     const auto screen_size = ScreenSize();
 
@@ -303,7 +219,7 @@ extern "C" void KernelMainNewStack(
 
         switch (msg.type) {
         case Message::kInterruptXHCI:
-            onInterruptXHCIMessage();
+            usb::xhci::ProcessEvents();
             break;
         default:
             Log(kError, "Unknown message type: %d\n", msg.type);
