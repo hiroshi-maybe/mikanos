@@ -51,6 +51,8 @@ void DrawDesktop(PixelWriter& writer) {
 }
 
 FrameBufferConfig screen_config;
+PixelWriter* screen_writer;
+
 Vector2D<int>ScreenSize() {
     return {
         static_cast<int>(screen_config.horizontal_resolution),
@@ -62,13 +64,19 @@ namespace {
     char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
 }
 
-PixelWriter* MakeScreenWriter() {
+void InitializeGraphics(const FrameBufferConfig& screen_config) {
+    ::screen_config = screen_config;
+
     switch  (screen_config.pixel_format) {
         case kPixelRGBResv8BitPerColor:
-            return new(pixel_writer_buf) RGBResv8BitPerColorPixelWriter{screen_config};
+            ::screen_writer = new(pixel_writer_buf) RGBResv8BitPerColorPixelWriter{screen_config};
+            break;
         case kPixelBGRResv8BitPerColor:
-            return new(pixel_writer_buf) BGRResv8BitPerColorPixelWriter{screen_config};
+            ::screen_writer = new(pixel_writer_buf) BGRResv8BitPerColorPixelWriter{screen_config};
+            break;
+        default:
+            exit(1);
     }
 
-    exit(1);
+    DrawDesktop(*screen_writer);
 }

@@ -22,8 +22,6 @@
 
 void operator delete(void* obj) noexcept {}
 
-char console_buf[sizeof(Console)];
-Console* console;
 int printk(const char* format, ...) {
     va_list ap;
     int result;
@@ -61,12 +59,8 @@ extern "C" void KernelMainNewStack(
     screen_config = frame_buffer_config_ref;
     MemoryMap memory_map{memory_map_ref};
 
-    PixelWriter* pixel_writer = MakeScreenWriter();
-
-    DrawDesktop(*pixel_writer);
-
-    console = new(console_buf) Console{kDesktopFGColor, kDesktopBGColor};
-    console->SetWriter(pixel_writer);
+    InitializeGraphics(frame_buffer_config_ref);
+    InitializeConsole();
     printk("Welcome to MikanOS!\n");
     SetLogLevel(kInfo);
 
