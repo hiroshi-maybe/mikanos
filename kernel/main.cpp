@@ -74,17 +74,7 @@ extern "C" void KernelMainNewStack(
                 reinterpret_cast<uint64_t>(IntHandlerXHCI), kKernelCS);
     LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
 
-    // Initialize PCI
-    auto err = pci::ScanAllBus();
-    Log(kDebug, "ScanAllBus: %s (%d devices)\n", err.Name(), pci::num_device);
-    for (int i = 0; i < pci::num_device; ++i) {
-        const auto& dev = pci::devices[i];
-        auto vendor_id = pci::ReadVendorId(dev.bus, dev.device, dev.function);
-        auto class_code = pci::ReadClassCode(dev.bus, dev.device, dev.function);
-        Log(kDebug, "%d.%d.%d: vend %04x, class (%02x, %02x, %02x), head %02x\n",
-            dev.bus, dev.device, dev.function, vendor_id, class_code.base, class_code.sub, class_code.interface, dev.header_type);
-    }
-
+    InitializePCI();
     usb::xhci::Initialize();
 
     const auto screen_size = ScreenSize();
