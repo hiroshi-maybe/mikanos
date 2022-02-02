@@ -57,9 +57,9 @@ extern "C" void KernelMainNewStack(
 
     ::main_queue = new std::deque<Message>(32);
 
-    InitializePCI();
     InitializeInterrupt(main_queue);
-    
+
+    InitializePCI();
     usb::xhci::Initialize();
 
     const auto screen_size = ScreenSize();
