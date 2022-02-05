@@ -2,6 +2,7 @@
 #include "interrupt.hpp"
 #include "logger.hpp"
 #include "segment.hpp"
+#include "timer.hpp"
 
 const uint32_t END_OF_INTERRUPT_REG_ADDR = 0xfee000b0;
 
@@ -36,7 +37,7 @@ namespace {
 
 __attribute__((interrupt))
 void IntHandlerLAPICTimer(InterruptFrame* frame) {
-    msg_queue->push_back(Message {Message::kInterruptLAPICTimer});
+    LAPICTimerOnInterrupt();
     NotifyEndOfInterrupt();
 }
 
