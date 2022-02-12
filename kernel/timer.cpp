@@ -1,5 +1,7 @@
 #include "timer.hpp"
 
+#include <limits>
+
 #include "interrupt.hpp"
 
 namespace {
@@ -15,8 +17,8 @@ const uint32_t INTERRUPT_LVT_TIMER_REG = 0b010 << 16;
 
 }
 
-void InitializeLAPICTimer() {
-    timer_manager = new TimerManager;
+void InitializeLAPICTimer(std::deque<Message>& msg_queue) {
+    timer_manager = new TimerManager{msg_queue};
 
     divide_config = TIMER_FREQUENCY_RATE_PER_CPU_CLOCK_1; // frequency rate = 1
     lvt_timer = INTERRUPT_LVT_TIMER_REG | InterruptVector::kLAPICTimer; // not-masked, periodic
@@ -34,8 +36,29 @@ void StopLAPICTimer() {
     initial_count = 0;
 }
 
+Timer::Timer(unsigned long timeout, int value) : timeout_{timeout}, value_{value} {}
+
+TimerManager::TimerManager(std::deque<Message>& msg_queue) : msg_queue_{msg_queue} {
+    timers_.push(Timer{std::numeric_limits<unsigned long>::max(), -1});
+}
+
+void TimerManager::AddTimer(const Timer& timer) {
+    timers_.push(timer);
+}
+
 void TimerManager::Tick() {
     ++tick_;
+    while(true) {
+        const auto& t = timers_.top();
+        if (t.Timeout() > tick_) { break; }
+
+        Message m{Message::kTimerTimeout};
+        m.arg.timer.timeout = t.Timeout();
+        m.arg.timer.value = t.Value();
+        msg_queue_.push_back(m);
+
+        timers_.pop();
+    }
 }
 
 TimerManager* timer_manager;
