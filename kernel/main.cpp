@@ -4,6 +4,7 @@
 #include <deque>
 #include <limits>
 
+#include "acpi.hpp"
 #include "asmfunc.h"
 #include "console.hpp"
 #include "frame_buffer_config.hpp"
@@ -58,7 +59,7 @@ std::deque<Message>* main_queue;
 alignas(16) uint8_t kernel_main_stack[1024 * 1024];
 
 extern "C" void KernelMainNewStack(
-    const FrameBufferConfig& frame_buffer_config_ref, const MemoryMap& memory_map_ref)
+    const FrameBufferConfig& frame_buffer_config_ref, const MemoryMap& memory_map_ref, const acpi::RSDP& acpi_table)
 {
     screen_config = frame_buffer_config_ref;
     MemoryMap memory_map{memory_map_ref};
