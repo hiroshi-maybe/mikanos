@@ -85,6 +85,7 @@ extern "C" void KernelMainNewStack(
     InitializeMouse();
     layer_manager->Draw({{0, 0}, ScreenSize()});
 
+    acpi::Initialize(acpi_table);
     InitializeLAPICTimer(*main_queue);
 
     timer_manager->AddTimer(Timer(200, 2));
