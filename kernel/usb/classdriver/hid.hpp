@@ -17,6 +17,7 @@ public:
 
     const static size_t kBufferSize = 1024;
     const std::array<uint8_t, kBufferSize>& Buffer() const { return buf_; }
+    const std::array<uint8_t, kBufferSize>& PreviousBuffer() const { return previous_buf_; }
 
     int in_packet_size_;
 private:

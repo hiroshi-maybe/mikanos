@@ -2,6 +2,7 @@
 
 #include "logger.hpp"
 #include "usb/classdriver/base.hpp"
+#include "usb/classdriver/keyboard.hpp"
 #include "usb/classdriver/mouse.hpp"
 #include "usb/descriptor.hpp"
 
@@ -50,12 +51,11 @@ usb::ClassDriver* NewClassDriver(usb::Device* dev, const usb::InterfaceDescripto
     if (if_desc.interface_class == 3 &&
         if_desc.interface_sub_class == 1) {  // HID boot interface
         if (if_desc.interface_protocol == 1) {  // keyboard
-        /*
             auto keyboard_driver = new usb::HIDKeyboardDriver{dev, if_desc.interface_number};
             if (usb::HIDKeyboardDriver::default_observer) {
                 keyboard_driver->SubscribeKeyPush(usb::HIDKeyboardDriver::default_observer);
             }
-            return keyboard_driver;*/
+            return keyboard_driver;
         }
         if (if_desc.interface_protocol == 2) {  // mouse
             auto mouse_driver = new usb::HIDMouseDriver{dev, if_desc.interface_number};
