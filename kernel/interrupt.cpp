@@ -38,7 +38,6 @@ namespace {
 __attribute__((interrupt))
 void IntHandlerLAPICTimer(InterruptFrame* frame) {
     LAPICTimerOnInterrupt();
-    NotifyEndOfInterrupt();
 }
 
 void InitializeInterrupt(std::deque<Message>* msg_queue) {
