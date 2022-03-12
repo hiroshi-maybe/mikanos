@@ -24,6 +24,7 @@ public:
         kNoWaiter,
         kNoPCIMSI,
         kUnknownPixelFormat,
+        kNoSuchTask,
         kLastOfCode,
     };
 private:
@@ -46,6 +47,7 @@ private:
         "kNoWaiter",
         "kNoPCIMSI",
         "kUnknownPixelFormat",
+        "kNoSuchTask",
     };
     static_assert(Error::Code::kLastOfCode == code_names_.size());
 public:
