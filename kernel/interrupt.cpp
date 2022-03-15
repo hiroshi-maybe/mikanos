@@ -2,6 +2,7 @@
 #include "interrupt.hpp"
 #include "logger.hpp"
 #include "segment.hpp"
+#include "task.hpp"
 #include "timer.hpp"
 
 const uint32_t END_OF_INTERRUPT_REG_ADDR = 0xfee000b0;
@@ -25,12 +26,11 @@ void NotifyEndOfInterrupt() {
 }
 
 namespace {
-    std::deque<Message>* msg_queue;
 
     __attribute__((interrupt))
     void IntHandlerXHCI(InterruptFrame* frame) {
         Log(kDebug, "Interrupt happened\n");
-        msg_queue->push_back(Message{Message::kInterruptXHCI});
+        task_manager->SendMessage(1, Message{Message::kInterruptXHCI});
         NotifyEndOfInterrupt();
     }
 }
@@ -40,9 +40,7 @@ void IntHandlerLAPICTimer(InterruptFrame* frame) {
     LAPICTimerOnInterrupt();
 }
 
-void InitializeInterrupt(std::deque<Message>* msg_queue) {
-    ::msg_queue = msg_queue;
-
+void InitializeInterrupt() {
     SetIDTEntry(idt[InterruptVector::kXHCI], MakeIDTAttr(DescriptorType::kInterruptGate, 0),
                 reinterpret_cast<uint64_t>(IntHandlerXHCI), kKernelCS);
     SetIDTEntry(idt[InterruptVector::kLAPICTimer], MakeIDTAttr(DescriptorType::kInterruptGate, 0),

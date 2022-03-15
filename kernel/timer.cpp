@@ -19,8 +19,8 @@ const uint32_t INTERRUPT_LVT_TIMER_REG = 0b010 << 16;
 
 }
 
-void InitializeLAPICTimer(std::deque<Message>& msg_queue) {
-    timer_manager = new TimerManager{msg_queue};
+void InitializeLAPICTimer() {
+    timer_manager = new TimerManager;
 
     divide_config = TIMER_FREQUENCY_RATE_PER_CPU_CLOCK_1;
     lvt_timer = 0b001 << 16;
@@ -50,7 +50,7 @@ void StopLAPICTimer() {
 
 Timer::Timer(unsigned long timeout, int value) : timeout_{timeout}, value_{value} {}
 
-TimerManager::TimerManager(std::deque<Message>& msg_queue) : msg_queue_{msg_queue} {
+TimerManager::TimerManager() {
     timers_.push(Timer{std::numeric_limits<unsigned long>::max(), -1});
 }
 
@@ -76,7 +76,7 @@ bool TimerManager::Tick() {
         Message m{Message::kTimerTimeout};
         m.arg.timer.timeout = t.Timeout();
         m.arg.timer.value = t.Value();
-        msg_queue_.push_back(m);
+        task_manager->SendMessage(1, m);
 
         timers_.pop();
     }
